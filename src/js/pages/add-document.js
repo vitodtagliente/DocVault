@@ -1,0 +1,206 @@
+/**
+ * Add Document page.
+ */
+
+import * as api from '../api.js';
+import store from '../store.js';
+import { showToast } from '../components/toast.js';
+import { presetSelectorHtml } from '../components/preset-selector.js';
+import { customFieldHtml, collectCustomFields } from '../components/custom-field.js';
+import { TagInput } from '../components/tag-input.js';
+import router from '../router.js';
+import { today } from '../utils/date.js';
+
+export async function render(container) {
+  const { categories, tags } = store.getState();
+
+  container.innerHTML = `
+    <div class="max-w-2xl mx-auto">
+      <h1 class="text-xl font-bold mb-6 text-[var(--color-text)]">Aggiungi documento</h1>
+
+      <form id="add-form" class="space-y-5">
+        <!-- File picker -->
+        <div>
+          <label class="label">File <span class="text-red-500">*</span></label>
+          <div id="file-drop-area" class="border-2 border-dashed border-[var(--color-border)] rounded-[var(--radius-lg)]
+                                          p-8 text-center cursor-pointer hover:border-[var(--color-primary)] transition">
+            <div id="file-placeholder">
+              <p class="text-3xl mb-2">📂</p>
+              <p class="text-sm text-[var(--color-text-muted)]">Clicca o trascina un file qui</p>
+              <p class="text-xs text-[var(--color-text-muted)] mt-1">PDF, immagini, Word, Excel, Markdown…</p>
+            </div>
+            <div id="file-selected" class="hidden text-sm text-[var(--color-text)]">
+              <p class="text-2xl mb-1">✅</p>
+              <p id="file-name" class="font-medium"></p>
+              <p id="file-size" class="text-[var(--color-text-muted)] text-xs mt-0.5"></p>
+            </div>
+          </div>
+          <input type="hidden" id="source-file-path" />
+        </div>
+
+        <!-- Category -->
+        <div>
+          <label class="label" for="preset-category">Categoria <span class="text-red-500">*</span></label>
+          ${presetSelectorHtml(categories)}
+        </div>
+
+        <!-- Custom fields (loaded dynamically) -->
+        <div id="custom-fields-section" class="hidden space-y-3">
+          <h3 class="text-sm font-medium text-[var(--color-text)]">Campi specifici</h3>
+          <div id="custom-fields-container" class="space-y-3"></div>
+        </div>
+
+        <!-- Title -->
+        <div>
+          <label class="label" for="doc-title">Titolo <span class="text-red-500">*</span></label>
+          <input type="text" id="doc-title" class="input" placeholder="Es. Bolletta luce gennaio 2026" required />
+        </div>
+
+        <!-- Date -->
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="label" for="doc-date">Data documento <span class="text-red-500">*</span></label>
+            <input type="date" id="doc-date" class="input" value="${today()}" required />
+          </div>
+          <div>
+            <label class="label" for="doc-expiry">Data scadenza</label>
+            <input type="date" id="doc-expiry" class="input" />
+          </div>
+        </div>
+
+        <!-- Notes -->
+        <div>
+          <label class="label" for="doc-notes">Note</label>
+          <textarea id="doc-notes" class="input h-20 resize-none" placeholder="Note libere…"></textarea>
+        </div>
+
+        <!-- Tags -->
+        <div>
+          <label class="label">Tag</label>
+          <div id="tag-input-container"></div>
+        </div>
+
+        <!-- OCR -->
+        <label class="flex items-center gap-2 text-sm cursor-pointer select-none">
+          <input type="checkbox" id="run-ocr" class="rounded" />
+          <span>Esegui OCR per rendere il testo ricercabile (richiede Tesseract)</span>
+        </label>
+
+        <!-- Actions -->
+        <div class="flex gap-3 pt-2">
+          <button type="submit" class="btn-primary flex-1" id="submit-btn">
+            💾 Salva documento
+          </button>
+          <a href="#/" class="btn-secondary">Annulla</a>
+        </div>
+      </form>
+    </div>
+  `;
+
+  // Tag input
+  const tagInput = new TagInput(
+    container.querySelector('#tag-input-container'),
+    [],
+    tags,
+  );
+
+  // File picker
+  const dropArea = container.querySelector('#file-drop-area');
+  const filePath = container.querySelector('#source-file-path');
+  const filePlaceholder = container.querySelector('#file-placeholder');
+  const fileSelected = container.querySelector('#file-selected');
+  const fileName = container.querySelector('#file-name');
+  const fileSize = container.querySelector('#file-size');
+
+  dropArea.addEventListener('click', async () => {
+    try {
+      const path = await api.openFileDialog([
+        { name: 'Documenti', extensions: ['pdf','jpg','jpeg','png','gif','webp','bmp','tiff','doc','docx','xls','xlsx','txt','csv','md','zip'] },
+        { name: 'Tutti i file', extensions: ['*'] },
+      ]);
+      if (!path) return;
+      setFile(path);
+    } catch (err) {
+      console.error(err);
+    }
+  });
+
+  function setFile(path) {
+    filePath.value = path;
+    const name = path.split(/[/\\]/).pop();
+    fileName.textContent = name;
+    // Auto-fill title if empty
+    const titleInput = container.querySelector('#doc-title');
+    if (!titleInput.value) {
+      titleInput.value = name.replace(/\.[^.]+$/, '').replace(/[_-]/g, ' ');
+    }
+    filePlaceholder.classList.add('hidden');
+    fileSelected.classList.remove('hidden');
+  }
+
+  // Category change → load custom fields
+  const categorySelect = container.querySelector('#preset-category');
+  const customSection = container.querySelector('#custom-fields-section');
+  const customContainer = container.querySelector('#custom-fields-container');
+
+  categorySelect.addEventListener('change', async () => {
+    const catId = categorySelect.value;
+    if (!catId) {
+      customSection.classList.add('hidden');
+      return;
+    }
+    try {
+      const fields = await api.getPresetFields(catId);
+      if (fields.length) {
+        customContainer.innerHTML = fields.map(f => customFieldHtml(f, '')).join('');
+        customSection.classList.remove('hidden');
+      } else {
+        customSection.classList.add('hidden');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  });
+
+  // Submit
+  const form = container.querySelector('#add-form');
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const path = filePath.value;
+    if (!path) {
+      showToast('Seleziona un file', 'warning');
+      return;
+    }
+
+    const submitBtn = form.querySelector('#submit-btn');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Salvataggio…';
+
+    try {
+      await api.createDocument({
+        title: form.querySelector('#doc-title').value.trim(),
+        source_file_path: path,
+        category_id: form.querySelector('#preset-category').value,
+        document_date: form.querySelector('#doc-date').value,
+        expiry_date: form.querySelector('#doc-expiry').value || null,
+        notes: form.querySelector('#doc-notes').value,
+        tags: tagInput.getTags(),
+        custom_fields: collectCustomFields(form),
+        run_ocr: form.querySelector('#run-ocr').checked,
+      });
+
+      showToast('Documento salvato!', 'success');
+      router.navigate('#/');
+    } catch (err) {
+      if (String(err).startsWith('DUPLICATE:')) {
+        const id = String(err).replace('DUPLICATE:', '');
+        showToast('File già presente nel catalogo', 'warning');
+        router.navigate(`#/view/${id}`);
+      } else {
+        showToast('Errore: ' + err, 'error');
+        submitBtn.disabled = false;
+        submitBtn.textContent = '💾 Salva documento';
+      }
+    }
+  });
+}
