@@ -43,11 +43,11 @@ export function filterBarHtml(filters, categories, tags) {
         <div class="flex items-center gap-4 h-9">
           <label class="flex items-center gap-1.5 text-sm text-[var(--color-text)] cursor-pointer select-none">
             <input type="checkbox" id="filter-favorites" class="rounded" ${filters.favorites_only ? 'checked' : ''} />
-            ${icon('star', 'w-3.5 h-3.5')} ${t('filter.favorites')}
+            ${icon('star', 'w-3.5 h-3.5', '#f59e0b')} ${t('filter.favorites')}
           </label>
           <label class="flex items-center gap-1.5 text-sm text-[var(--color-text)] cursor-pointer select-none">
             <input type="checkbox" id="filter-expiring" class="rounded" ${filters.expiring_only ? 'checked' : ''} />
-            ${icon('clock', 'w-3.5 h-3.5')} ${t('filter.expiring')}
+            ${icon('clock', 'w-3.5 h-3.5', '#f97316')} ${t('filter.expiring')}
           </label>
           <button class="btn-ghost text-sm ml-auto" id="filter-reset">${t('filter.reset')}</button>
         </div>

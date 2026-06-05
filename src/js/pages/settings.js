@@ -5,6 +5,7 @@
 import * as api from '../api.js';
 import store from '../store.js';
 import { t, initI18n, getCurrentLang } from '../i18n.js';
+import { appConfig } from '../app-config.js';
 import { showToast } from '../components/toast.js';
 import { confirm } from '../components/modal.js';
 
@@ -93,7 +94,8 @@ export async function render(container) {
       <!-- About -->
       <div class="card">
         <h2 class="text-sm font-semibold text-[var(--color-text)] mb-2">${t('settings.about')}</h2>
-        <p class="text-xs text-[var(--color-text-muted)]">DocVault v1.0.0 · Tauri 2 + Vanilla JS + SQLite</p>
+        <p class="text-xs text-[var(--color-text-muted)]">${appConfig.name} v${appConfig.version} · ${appConfig.tech}</p>
+        ${appConfig.tagline ? `<p class="text-xs text-[var(--color-text-muted)] mt-0.5 italic">${escHtml(appConfig.tagline)}</p>` : ''}
       </div>
     </div>
   `;

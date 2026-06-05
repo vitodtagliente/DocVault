@@ -12,7 +12,7 @@ const translations = {
     'nav.backup': 'Backup',
     'nav.settings': 'Settings',
     'nav.sync': 'Sync Drive',
-    'nav.addDocument': '+ Add document',
+    'nav.addDocument': 'Add document',
     'nav.add': 'Add',
     'nav.notifications': 'Notifications',
 
@@ -127,8 +127,8 @@ const translations = {
     'edit.error': 'Error: ',
 
     // View document
-    'view.showInExplorer': '📂 Show in Explorer',
-    'view.openWith': '↗️ Open with…',
+    'view.showInExplorer': 'Show in Explorer',
+    'view.openWith': 'Open with…',
     'view.edit': '✏️ Edit',
     'view.delete': '🗑️ Delete',
     'view.details': 'Details',
@@ -176,7 +176,7 @@ const translations = {
     'cat.fieldTypeDate': 'Date',
     'cat.fieldTypeSelect': 'List',
     'cat.required': 'Required',
-    'cat.addFieldBtn': '+ Add field',
+    'cat.addFieldBtn': 'Add field',
     'cat.close': 'Close',
     'cat.fieldRemoved': 'Field removed',
     'cat.fieldAdded': 'Field added!',
@@ -283,7 +283,7 @@ const translations = {
     'nav.backup': 'Backup',
     'nav.settings': 'Impostazioni',
     'nav.sync': 'Sync Drive',
-    'nav.addDocument': '+ Aggiungi documento',
+    'nav.addDocument': 'Aggiungi documento',
     'nav.add': 'Aggiungi',
     'nav.notifications': 'Notifiche',
 
@@ -398,8 +398,8 @@ const translations = {
     'edit.error': 'Errore: ',
 
     // View document
-    'view.showInExplorer': '📂 Mostra in Explorer',
-    'view.openWith': '↗️ Apri con…',
+    'view.showInExplorer': 'Mostra in Explorer',
+    'view.openWith': 'Apri con…',
     'view.edit': '✏️ Modifica',
     'view.delete': '🗑️ Elimina',
     'view.details': 'Dettagli',
@@ -447,7 +447,7 @@ const translations = {
     'cat.fieldTypeDate': 'Data',
     'cat.fieldTypeSelect': 'Lista',
     'cat.required': 'Obbligatorio',
-    'cat.addFieldBtn': '+ Aggiungi campo',
+    'cat.addFieldBtn': 'Aggiungi campo',
     'cat.close': 'Chiudi',
     'cat.fieldRemoved': 'Campo rimosso',
     'cat.fieldAdded': 'Campo aggiunto!',

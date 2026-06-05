@@ -49,10 +49,19 @@ const sizeMap = {
   'w-12 h-12':   '3',
 };
 
-export function icon(name, sizeClass = 'w-5 h-5') {
-  const fa   = faMap[name] ?? 'fa-question';
-  const size = sizeMap[sizeClass] ?? '1.25';
-  return `<i class="fa-solid ${fa}" style="font-size:${size}rem;line-height:1;display:inline-block;width:${size}rem;text-align:center" aria-hidden="true"></i>`;
+export function icon(name, sizeClass = 'w-5 h-5', color = '') {
+  const fa    = faMap[name] ?? 'fa-question';
+  const size  = sizeMap[sizeClass] ?? '1.25';
+  const cStyle = color ? `;color:${color}` : '';
+  return `<i class="fa-solid ${fa}" style="font-size:${size}rem;line-height:1;display:inline-block;width:${size}rem;text-align:center${cStyle}" aria-hidden="true"></i>`;
+}
+
+/** Same as icon() but uses the outlined (fa-regular) variant — e.g. empty star. */
+export function iconOutline(name, sizeClass = 'w-5 h-5', color = '') {
+  const fa    = faMap[name] ?? 'fa-question';
+  const size  = sizeMap[sizeClass] ?? '1.25';
+  const cStyle = color ? `;color:${color}` : '';
+  return `<i class="fa-regular ${fa}" style="font-size:${size}rem;line-height:1;display:inline-block;width:${size}rem;text-align:center${cStyle}" aria-hidden="true"></i>`;
 }
 
 // Legacy export kept for any direct consumers

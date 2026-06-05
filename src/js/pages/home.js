@@ -14,7 +14,7 @@
 import * as api from '../api.js';
 import store from '../store.js';
 import { t } from '../i18n.js';
-import { icon } from '../utils/icons.js';
+import { icon, iconOutline } from '../utils/icons.js';
 import { debounce } from '../utils/debounce.js';
 import { formatFileSize } from '../utils/format.js';
 import { formatDate } from '../utils/date.js';
@@ -308,7 +308,6 @@ export async function render(container) {
         <div style="flex:1;min-width:0">
           <div style="display:flex;align-items:center;gap:.375rem;flex-wrap:wrap;margin-bottom:2px">
             <span style="font-size:.65rem;padding:2px 6px;border-radius:4px;color:white;background:${cat.color}">${escHtml(cat.name)}</span>
-            ${doc.is_favorite ? '<span style="color:#f59e0b;font-size:.75rem">★</span>' : ''}
           </div>
           <h2 style="font-size:.875rem;font-weight:600;color:var(--color-text);line-height:1.3;
                      display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">
@@ -320,11 +319,9 @@ export async function render(container) {
         </div>
         <div style="display:flex;gap:2px;flex-shrink:0">
           <button id="pv-fav"
-                  style="padding:6px;border-radius:var(--radius-md);display:flex;align-items:center;
-                         font-size:1rem;line-height:1;
-                         color:${doc.is_favorite ? '#f59e0b' : 'var(--color-text-muted)'};"
+                  style="padding:6px;border-radius:var(--radius-md);display:flex;align-items:center"
                   title="Favourite">
-            ${doc.is_favorite ? '★' : '☆'}
+            ${doc.is_favorite ? icon('star','w-4 h-4','#f59e0b') : iconOutline('star','w-4 h-4','var(--color-text-muted)')}
           </button>
           <a href="#/edit/${id}" class="btn-ghost"
              style="padding:6px;border-radius:var(--radius-md);display:flex;align-items:center"
@@ -403,11 +400,12 @@ export async function render(container) {
         await api.updateDocument({ id, is_favorite: isFavorite });
         const btn = previewContent.querySelector('#pv-fav');
         if (btn) {
-          btn.textContent = isFavorite ? '★' : '☆';
-          btn.style.color = isFavorite ? '#f59e0b' : 'var(--color-text-muted)';
+          btn.innerHTML = isFavorite
+            ? icon('star', 'w-4 h-4', '#f59e0b')
+            : iconOutline('star', 'w-4 h-4', 'var(--color-text-muted)');
         }
         const starEl = resultsContainer.querySelector(`[data-fav-star="${id}"]`);
-        if (starEl) starEl.style.display = isFavorite ? 'inline' : 'none';
+        if (starEl) starEl.style.display = isFavorite ? 'inline-flex' : 'none';
       } catch (err) {
         isFavorite = !isFavorite; // rollback
         showToast(String(err), 'error');
@@ -447,19 +445,26 @@ export async function render(container) {
   async function loadViewer(viewerEl, doc, id) {
     if (!viewerEl) return;
     const mime = doc.mime_type;
+    const ext  = (doc.file_extension || '').toLowerCase().replace('.', '');
+    const IMAGE_EXTS = ['jpg','jpeg','png','gif','webp','bmp','tiff','avif','svg'];
+    const isImage = mime?.startsWith('image/') || IMAGE_EXTS.includes(ext);
+    const isPdf   = mime === 'application/pdf' || ext === 'pdf';
+    const isText  = mime === 'text/markdown' || mime === 'text/plain' || mime === 'text/csv'
+                 || ext === 'md' || ext === 'txt' || ext === 'csv';
     try {
-      if (mime?.startsWith('image/')) {
+      if (isImage) {
+        const effectiveMime = mime?.startsWith('image/') ? mime : `image/${ext === 'jpg' ? 'jpeg' : ext}`;
         const { renderImageViewer } = await import('../viewers/image-viewer.js');
         const bytes = await api.readFileBytes(id);
-        renderImageViewer(viewerEl, URL.createObjectURL(new Blob([new Uint8Array(bytes)], { type: mime })));
-      } else if (mime === 'application/pdf') {
+        renderImageViewer(viewerEl, bytesToDataUrl(bytes, effectiveMime));
+      } else if (isPdf) {
         const { renderPdfViewer } = await import('../viewers/pdf-viewer.js');
         const bytes = await api.readFileBytes(id);
         renderPdfViewer(viewerEl, new Uint8Array(bytes));
-      } else if (mime === 'text/markdown' || mime === 'text/plain' || mime === 'text/csv') {
+      } else if (isText) {
         const { renderMdViewer } = await import('../viewers/md-viewer.js');
         const text = await api.readFileText(id);
-        renderMdViewer(viewerEl, text, mime !== 'text/markdown');
+        renderMdViewer(viewerEl, text, ext !== 'md' && mime !== 'text/markdown');
       } else {
         viewerEl.innerHTML = `
           <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--color-text-muted);padding:1.5rem">
@@ -518,4 +523,15 @@ function injectListStyles() {
 
 function escHtml(str) {
   return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/** Convert raw bytes (array or Uint8Array from Tauri) to a data: URL. */
+function bytesToDataUrl(bytes, mime) {
+  const u8 = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+  let binary = '';
+  const CHUNK = 8192;
+  for (let i = 0; i < u8.length; i += CHUNK) {
+    binary += String.fromCharCode(...u8.subarray(i, Math.min(i + CHUNK, u8.length)));
+  }
+  return `data:${mime};base64,${btoa(binary)}`;
 }

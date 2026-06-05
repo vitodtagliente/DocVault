@@ -1,0 +1,6 @@
+{
+  "name": "DocVault",
+  "version": "1.0.0",
+  "tech": "Tauri 2 + Vanilla JS + SQLite",
+  "tagline": "Your personal document vault"
+}

@@ -2,6 +2,7 @@ import { formatDate } from '../utils/date.js';
 import { formatFileSize } from '../utils/format.js';
 import { expiryStatus, daysUntilExpiry } from '../utils/date.js';
 import { t } from '../i18n.js';
+import { icon } from '../utils/icons.js';
 
 /**
  * Renders a single document as a compact list row.
@@ -33,7 +34,7 @@ export function documentRow(doc, selected = false) {
         <div style="display:flex;align-items:center;gap:6px">
           <span style="font-size:.875rem;font-weight:500;color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"
                 title="${escHtml(doc.title)}">${escHtml(doc.title)}</span>
-          <span data-fav-star="${doc.id}" style="color:#f59e0b;font-size:.75rem;flex-shrink:0;display:${doc.is_favorite ? 'inline' : 'none'}">★</span>
+          <span data-fav-star="${doc.id}" style="flex-shrink:0;display:${doc.is_favorite ? 'inline-flex' : 'none'};align-items:center">${icon('star', 'w-3 h-3', '#f59e0b')}</span>
         </div>
         <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-top:2px">
           <span style="font-size:.7rem;color:var(--color-text-muted)">${formatDate(doc.document_date)}</span>
