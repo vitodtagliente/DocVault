@@ -6,18 +6,20 @@ import { t } from '../i18n.js';
 
 let activeModal = null;
 
-export function openModal({ title, body, actions = [], onClose } = {}) {
+export function openModal({ title, body, actions = [], onClose, size = 'lg' } = {}) {
   closeModal();
 
   const container = document.getElementById('modal-container');
   if (!container) return;
+
+  const maxW = size === 'xl' ? 'max-w-2xl' : size === 'lg' ? 'max-w-lg' : 'max-w-md';
 
   const modal = document.createElement('div');
   modal.className = 'fixed inset-0 z-50 flex items-center justify-center p-4';
   modal.innerHTML = `
     <div class="absolute inset-0 bg-black/50" id="modal-backdrop"></div>
     <div class="relative bg-[var(--color-bg)] border border-[var(--color-border)] rounded-[var(--radius-lg)]
-                shadow-xl w-full max-w-md max-h-[90vh] flex flex-col" role="dialog" aria-modal="true">
+                shadow-xl w-full ${maxW} max-h-[90vh] flex flex-col" role="dialog" aria-modal="true">
       <div class="flex items-center justify-between px-5 py-4 border-b border-[var(--color-border)]">
         <h2 class="text-base font-semibold text-[var(--color-text)]">${title || ''}</h2>
         <button id="modal-close" class="btn-ghost p-1 text-lg" aria-label="${t('modal.close')}">${t('modal.close')}</button>

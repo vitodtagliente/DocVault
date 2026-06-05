@@ -150,7 +150,7 @@ const translations = {
 
     // Categories
     'cat.title': 'Categories',
-    'cat.newCategory': '+ New category',
+    'cat.newCategory': 'New category',
     'cat.fields': 'Fields',
     'cat.delete': 'Delete',
     'cat.system': 'System',
@@ -244,11 +244,11 @@ const translations = {
     'sync.activatePro': 'Activate Pro license',
     'sync.connected': 'Connected to Google Drive',
     'sync.lastSync': 'Last sync: ',
-    'sync.syncNow': '🔄 Sync now',
+    'sync.syncNow': 'Sync now',
     'sync.disconnect': 'Disconnect',
     'sync.connectDesc': 'Connect your Google account to sync documents across devices.',
-    'sync.connect': '🔗 Connect Google Drive',
-    'sync.syncing': '🔄 Syncing…',
+    'sync.connect': 'Connect Google Drive',
+    'sync.syncing': 'Syncing…',
     'sync.inProgress': 'In progress…',
     'sync.doneMsg': 'Sync complete!',
     'sync.disconnected': 'Disconnected from Google Drive',
@@ -265,8 +265,8 @@ const translations = {
     'filter.dateAsc': 'Date ↑',
     'filter.titleAsc': 'Title A-Z',
     'filter.recentFirst': 'Most recent',
-    'filter.favorites': '⭐ Favorites',
-    'filter.expiring': '⏰ Expiring',
+    'filter.favorites': 'Favorites',
+    'filter.expiring': 'Expiring',
     'filter.reset': 'Reset filters',
 
     // Modal
@@ -421,7 +421,7 @@ const translations = {
 
     // Categories
     'cat.title': 'Categorie',
-    'cat.newCategory': '+ Nuova categoria',
+    'cat.newCategory': 'Nuova categoria',
     'cat.fields': 'Campi',
     'cat.delete': 'Elimina',
     'cat.system': 'Sistema',
@@ -515,11 +515,11 @@ const translations = {
     'sync.activatePro': 'Attiva licenza Pro',
     'sync.connected': 'Connesso a Google Drive',
     'sync.lastSync': 'Ultima sync: ',
-    'sync.syncNow': '🔄 Sincronizza ora',
+    'sync.syncNow': 'Sincronizza ora',
     'sync.disconnect': 'Disconnetti',
     'sync.connectDesc': 'Connetti il tuo account Google per sincronizzare documenti tra dispositivi.',
-    'sync.connect': '🔗 Connetti Google Drive',
-    'sync.syncing': '🔄 Sincronizzazione…',
+    'sync.connect': 'Connetti Google Drive',
+    'sync.syncing': 'Sincronizzazione…',
     'sync.inProgress': 'In corso…',
     'sync.doneMsg': 'Sync completata!',
     'sync.disconnected': 'Disconnesso da Google Drive',
@@ -536,8 +536,8 @@ const translations = {
     'filter.dateAsc': 'Data ↑',
     'filter.titleAsc': 'Titolo A-Z',
     'filter.recentFirst': 'Più recenti',
-    'filter.favorites': '⭐ Preferiti',
-    'filter.expiring': '⏰ In scadenza',
+    'filter.favorites': 'Preferiti',
+    'filter.expiring': 'In scadenza',
     'filter.reset': 'Azzera filtri',
 
     // Modal

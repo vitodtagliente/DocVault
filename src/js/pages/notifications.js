@@ -4,6 +4,7 @@
 
 import * as api from '../api.js';
 import { t } from '../i18n.js';
+import { icon } from '../utils/icons.js';
 import { formatDate } from '../utils/date.js';
 import { daysUntilExpiry } from '../utils/date.js';
 import router from '../router.js';
@@ -53,7 +54,7 @@ export async function render(container) {
 
       ${!hasAny ? `
         <div class="card flex flex-col items-center justify-center py-16 text-[var(--color-text-muted)] space-y-3">
-          <span class="text-4xl">✅</span>
+          <span style="font-size:2.5rem;color:#16a34a">${icon('checkCircle', 'w-10 h-10')}</span>
           <p class="text-sm text-center">${t('notif.none')}</p>
         </div>
       ` : ''}

@@ -1,4 +1,5 @@
 import { t } from '../i18n.js';
+import { icon } from '../utils/icons.js';
 
 export function filterBarHtml(filters, categories, tags) {
   return `
@@ -42,11 +43,11 @@ export function filterBarHtml(filters, categories, tags) {
         <div class="flex items-center gap-4 h-9">
           <label class="flex items-center gap-1.5 text-sm text-[var(--color-text)] cursor-pointer select-none">
             <input type="checkbox" id="filter-favorites" class="rounded" ${filters.favorites_only ? 'checked' : ''} />
-            ${t('filter.favorites')}
+            ${icon('star', 'w-3.5 h-3.5')} ${t('filter.favorites')}
           </label>
           <label class="flex items-center gap-1.5 text-sm text-[var(--color-text)] cursor-pointer select-none">
             <input type="checkbox" id="filter-expiring" class="rounded" ${filters.expiring_only ? 'checked' : ''} />
-            ${t('filter.expiring')}
+            ${icon('clock', 'w-3.5 h-3.5')} ${t('filter.expiring')}
           </label>
           <button class="btn-ghost text-sm ml-auto" id="filter-reset">${t('filter.reset')}</button>
         </div>

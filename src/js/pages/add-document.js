@@ -5,6 +5,7 @@
 import * as api from '../api.js';
 import store from '../store.js';
 import { t } from '../i18n.js';
+import { icon } from '../utils/icons.js';
 import { showToast } from '../components/toast.js';
 import { presetSelectorHtml } from '../components/preset-selector.js';
 import { customFieldHtml, collectCustomFields } from '../components/custom-field.js';
@@ -26,12 +27,12 @@ export async function render(container) {
           <div id="file-drop-area" class="border-2 border-dashed border-[var(--color-border)] rounded-[var(--radius-lg)]
                                           p-8 text-center cursor-pointer hover:border-[var(--color-primary)] transition">
             <div id="file-placeholder">
-              <p class="text-3xl mb-2">📂</p>
+              <p style="font-size:2rem;margin-bottom:.5rem;color:var(--color-text-muted)">${icon('folderOpen', 'w-8 h-8')}</p>
               <p class="text-sm text-[var(--color-text-muted)]">${t('add.fileDropHint')}</p>
               <p class="text-xs text-[var(--color-text-muted)] mt-1">${t('add.fileDropSubhint')}</p>
             </div>
             <div id="file-selected" class="hidden text-sm text-[var(--color-text)]">
-              <p class="text-2xl mb-1">✅</p>
+              <p style="font-size:1.75rem;margin-bottom:.25rem;color:#16a34a">${icon('checkCircle', 'w-7 h-7')}</p>
               <p id="file-name" class="font-medium"></p>
               <p id="file-size" class="text-[var(--color-text-muted)] text-xs mt-0.5"></p>
             </div>

@@ -4,6 +4,7 @@
 
 import * as api from '../api.js';
 import { t } from '../i18n.js';
+import { icon } from '../utils/icons.js';
 import { showToast } from '../components/toast.js';
 
 export async function render(container) {
@@ -28,7 +29,10 @@ export async function render(container) {
       ${!licenseStatus.is_pro ? `
         <div class="card border-amber-300 space-y-3">
           <div class="flex items-center gap-2">
-            <span class="text-2xl">🔒</span>
+            <span style="width:2rem;height:2rem;border-radius:var(--radius-lg);display:flex;align-items:center;
+                         justify-content:center;background:#f59e0b;color:white">
+              ${icon('lock', 'w-4 h-4')}
+            </span>
             <div>
               <p class="font-semibold text-sm text-[var(--color-text)]">${t('sync.proFeature')}</p>
               <p class="text-xs text-[var(--color-text-muted)]">${t('sync.proRequired')}</p>
@@ -39,7 +43,10 @@ export async function render(container) {
       ` : status.is_authenticated ? `
         <div class="card space-y-4">
           <div class="flex items-center gap-3">
-            <span class="text-3xl">☁️</span>
+            <span style="width:2.5rem;height:2.5rem;border-radius:var(--radius-lg);display:flex;align-items:center;
+                         justify-content:center;background:var(--color-primary);color:white">
+              ${icon('cloud', 'w-5 h-5')}
+            </span>
             <div>
               <p class="font-semibold text-sm text-[var(--color-text)]">${t('sync.connected')}</p>
               ${status.email ? `<p class="text-xs text-[var(--color-text-muted)]">${escHtml(status.email)}</p>` : ''}
@@ -47,15 +54,17 @@ export async function render(container) {
             </div>
           </div>
           <div class="flex gap-2">
-            <button id="btn-sync"   class="btn-primary">${t('sync.syncNow')}</button>
-            <button id="btn-logout" class="btn-secondary">${t('sync.disconnect')}</button>
+            <button id="btn-sync"   class="btn-primary"   style="display:flex;align-items:center;gap:.5rem">${icon('sync', 'w-4 h-4')} ${t('sync.syncNow')}</button>
+            <button id="btn-logout" class="btn-secondary" style="display:flex;align-items:center;gap:.5rem">${t('sync.disconnect')}</button>
           </div>
           <div id="sync-status" class="hidden text-sm"></div>
         </div>
       ` : `
         <div class="card space-y-4">
           <p class="text-sm text-[var(--color-text-muted)]">${t('sync.connectDesc')}</p>
-          <button id="btn-login" class="btn-primary">${t('sync.connect')}</button>
+          <button id="btn-login" class="btn-primary" style="display:flex;align-items:center;gap:.5rem">
+            ${icon('link', 'w-4 h-4')} ${t('sync.connect')}
+          </button>
         </div>
       `}
     </div>
@@ -80,13 +89,13 @@ export async function render(container) {
     const btn      = container.querySelector('#btn-sync');
     const statusEl = container.querySelector('#sync-status');
     btn.disabled = true;
-    btn.textContent = t('sync.syncing');
+    btn.innerHTML = `<div class="spinner" style="width:.9rem;height:.9rem;flex-shrink:0"></div> ${t('sync.syncing')}`;
     statusEl.classList.remove('hidden');
     statusEl.textContent = t('sync.inProgress');
     try {
       const report = await api.syncNow();
       statusEl.innerHTML = `
-        <p class="text-green-600">✅ ${t('sync.doneMsg')} (${report.duration_ms}ms)</p>
+        <p style="color:#16a34a;display:flex;align-items:center;gap:.375rem">${icon('checkCircle', 'w-4 h-4')} ${t('sync.doneMsg')} (${report.duration_ms}ms)</p>
         <p class="text-xs text-[var(--color-text-muted)]">
           ↓ ${report.events_downloaded} events, ${report.files_downloaded} files
           · ↑ ${report.events_uploaded} events, ${report.files_uploaded} files
@@ -99,7 +108,7 @@ export async function render(container) {
       showToast(t('sync.syncError') + err, 'error');
     } finally {
       btn.disabled = false;
-      btn.textContent = t('sync.syncNow');
+      btn.innerHTML = `${icon('sync', 'w-4 h-4')} ${t('sync.syncNow')}`;
     }
   });
 }

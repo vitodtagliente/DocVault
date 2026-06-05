@@ -28,7 +28,7 @@ export async function renderPdfViewer(container, pdfData) {
   let pdfjsLib;
   try {
     pdfjsLib = await import('../../assets/lib/pdf.mjs');
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'assets/lib/pdf.worker.mjs';
+    pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('/assets/lib/pdf.worker.mjs', location.href).href;
   } catch {
     container.innerHTML = `
       <div class="flex flex-col items-center justify-center h-full p-8 text-[var(--color-text-muted)] text-sm">
