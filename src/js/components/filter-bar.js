@@ -9,7 +9,7 @@ export function filterBarHtml(filters, categories, tags) {
         <select class="input text-sm py-1.5" id="filter-category">
           <option value="">${t('filter.allCategories')}</option>
           ${categories.map(c => `
-            <option value="${c.id}" ${filters.categoryId === c.id ? 'selected' : ''}>
+            <option value="${c.id}" ${filters.category_id === c.id ? 'selected' : ''}>
               ${escHtml(c.name)}
             </option>
           `).join('')}
@@ -21,7 +21,7 @@ export function filterBarHtml(filters, categories, tags) {
         <label class="label text-xs">${t('filter.year')}</label>
         <select class="input text-sm py-1.5" id="filter-year">
           <option value="0">${t('filter.allYears')}</option>
-          ${getYearOptions(filters.yearFilter)}
+          ${getYearOptions(filters.year_filter)}
         </select>
       </div>
 
@@ -29,23 +29,23 @@ export function filterBarHtml(filters, categories, tags) {
       <div class="flex flex-col gap-1">
         <label class="label text-xs">${t('filter.sortBy')}</label>
         <select class="input text-sm py-1.5" id="filter-sort">
-          <option value="date_desc"    ${filters.sortBy === 'date_desc'    ? 'selected' : ''}>${t('filter.dateDesc')}</option>
-          <option value="date_asc"     ${filters.sortBy === 'date_asc'     ? 'selected' : ''}>${t('filter.dateAsc')}</option>
-          <option value="title_asc"    ${filters.sortBy === 'title_asc'    ? 'selected' : ''}>${t('filter.titleAsc')}</option>
-          <option value="created_desc" ${filters.sortBy === 'created_desc' ? 'selected' : ''}>${t('filter.recentFirst')}</option>
+          <option value="date_desc"    ${filters.sort_by === 'date_desc'    ? 'selected' : ''}>${t('filter.dateDesc')}</option>
+          <option value="date_asc"     ${filters.sort_by === 'date_asc'     ? 'selected' : ''}>${t('filter.dateAsc')}</option>
+          <option value="title_asc"    ${filters.sort_by === 'title_asc'    ? 'selected' : ''}>${t('filter.titleAsc')}</option>
+          <option value="created_desc" ${filters.sort_by === 'created_desc' ? 'selected' : ''}>${t('filter.recentFirst')}</option>
         </select>
       </div>
 
-      <!-- Toggles + Reset in a flex row on the same baseline -->
+      <!-- Toggles + Reset -->
       <div class="flex flex-col gap-1 lg:col-span-3">
         <label class="label text-xs opacity-0 select-none">·</label>
         <div class="flex items-center gap-4 h-9">
           <label class="flex items-center gap-1.5 text-sm text-[var(--color-text)] cursor-pointer select-none">
-            <input type="checkbox" id="filter-favorites" class="rounded" ${filters.favoritesOnly ? 'checked' : ''} />
+            <input type="checkbox" id="filter-favorites" class="rounded" ${filters.favorites_only ? 'checked' : ''} />
             ${t('filter.favorites')}
           </label>
           <label class="flex items-center gap-1.5 text-sm text-[var(--color-text)] cursor-pointer select-none">
-            <input type="checkbox" id="filter-expiring" class="rounded" ${filters.expiringOnly ? 'checked' : ''} />
+            <input type="checkbox" id="filter-expiring" class="rounded" ${filters.expiring_only ? 'checked' : ''} />
             ${t('filter.expiring')}
           </label>
           <button class="btn-ghost text-sm ml-auto" id="filter-reset">${t('filter.reset')}</button>
@@ -58,12 +58,13 @@ export function filterBarHtml(filters, categories, tags) {
 export function mountFilterBar(container, onChange) {
   const get = (id) => container.querySelector(`#${id}`);
 
+  // Keys match Rust SearchFilters snake_case field names exactly
   const collect = () => ({
-    categoryId:    get('filter-category')?.value || '',
-    yearFilter:    parseInt(get('filter-year')?.value || '0'),
-    sortBy:        get('filter-sort')?.value || 'date_desc',
-    favoritesOnly: get('filter-favorites')?.checked || false,
-    expiringOnly:  get('filter-expiring')?.checked || false,
+    category_id:    get('filter-category')?.value || '',
+    year_filter:    parseInt(get('filter-year')?.value || '0'),
+    sort_by:        get('filter-sort')?.value || 'date_desc',
+    favorites_only: get('filter-favorites')?.checked || false,
+    expiring_only:  get('filter-expiring')?.checked || false,
   });
 
   ['filter-category', 'filter-year', 'filter-sort'].forEach(id => {
@@ -78,7 +79,7 @@ export function mountFilterBar(container, onChange) {
     if (get('filter-sort'))      get('filter-sort').value = 'date_desc';
     if (get('filter-favorites')) get('filter-favorites').checked = false;
     if (get('filter-expiring'))  get('filter-expiring').checked = false;
-    onChange({ categoryId: '', yearFilter: 0, sortBy: 'date_desc', favoritesOnly: false, expiringOnly: false });
+    onChange({ category_id: '', year_filter: 0, sort_by: 'date_desc', favorites_only: false, expiring_only: false });
   });
 }
 

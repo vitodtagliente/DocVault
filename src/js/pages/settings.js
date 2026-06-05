@@ -133,7 +133,7 @@ export async function render(container) {
 
   // Change storage folder
   container.querySelector('#change-storage-btn')?.addEventListener('click', async () => {
-    const path = await api.openFolderDialog();
+    const path = await api.openFolderDialog(settings.storage_path || undefined);
     if (!path) return;
     const statusEl = container.querySelector('#change-storage-status');
     const valid = await api.validateStoragePath(path);

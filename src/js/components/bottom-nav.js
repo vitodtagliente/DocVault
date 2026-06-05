@@ -8,10 +8,10 @@ export function renderBottomNav(el) {
   const render = () => {
     const currentPage = store.getState().currentPage;
     const navItems = [
-      { hash: '#/',         iconName: 'home',    labelKey: 'nav.home' },
-      { hash: '#/add',      iconName: 'plus',    labelKey: 'nav.add' },
-      { hash: '#/expiring', iconName: 'clock',   labelKey: 'nav.expiring' },
-      { hash: '#/settings', iconName: 'cog',     labelKey: 'nav.settings' },
+      { hash: '#/',                  iconName: 'home',    labelKey: 'nav.home' },
+      { hash: '#/add',               iconName: 'plus',    labelKey: 'nav.add' },
+      { hash: '#/notifications',     iconName: 'bell',    labelKey: 'nav.notifications' },
+      { hash: '#/settings',          iconName: 'cog',     labelKey: 'nav.settings' },
     ];
 
     el.innerHTML = `

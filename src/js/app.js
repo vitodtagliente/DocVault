@@ -6,10 +6,11 @@
 import router from './router.js';
 import store from './store.js';
 import * as api from './api.js';
-import { initI18n } from './i18n.js';
+import { initI18n, t } from './i18n.js';
 import { renderSidebar } from './components/sidebar.js';
 import { renderHeader } from './components/header.js';
 import { renderBottomNav } from './components/bottom-nav.js';
+import { openModal, closeModal } from './components/modal.js';
 
 async function init() {
   try {
@@ -55,6 +56,16 @@ async function init() {
       return;
     }
 
+    // Check if storage folder still exists
+    if (settings.storage_path) {
+      checkStorageFolder(settings.storage_path);
+    }
+
+    // Load expiry count for notification badge
+    api.getStats().then(stats => {
+      if (stats) store.setState({ expiringCount: stats.expiring_soon });
+    }).catch(() => {});
+
     router.init();
   } catch (err) {
     console.error('[app] Init failed:', err);
@@ -62,6 +73,34 @@ async function init() {
     router.init();
     router.navigate('#/setup');
   }
+}
+
+async function checkStorageFolder(storagePath) {
+  try {
+    const exists = await api.folderExists(storagePath);
+    if (!exists) {
+      showMissingFolderModal();
+    }
+  } catch {
+    // Non-fatal — ignore check failure
+  }
+}
+
+function showMissingFolderModal() {
+  openModal({
+    title: t('app.missingFolder'),
+    body: `<p class="text-sm text-[var(--color-text-muted)]">${t('app.missingFolderMsg')}</p>`,
+    actions: [
+      {
+        label: t('app.reconfigure'),
+        variant: 'primary',
+        onClick: () => {
+          closeModal();
+          router.navigate('#/settings');
+        },
+      },
+    ],
+  });
 }
 
 function applyTheme(theme) {

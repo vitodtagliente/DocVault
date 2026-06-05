@@ -1,55 +1,55 @@
-import { documentCard } from './document-card.js';
+import { documentRow } from './document-card.js';
 import { delegate } from '../utils/dom.js';
-import * as api from '../api.js';
 import { t } from '../i18n.js';
-import { showToast } from './toast.js';
 import router from '../router.js';
 
-export function renderDocumentGrid(container, documents) {
+/**
+ * Renders a scrollable list of document rows.
+ * @param {HTMLElement} container
+ * @param {Array} documents
+ * @param {string|null} selectedId   — currently highlighted row
+ * @param {Function|null} onSelect   — called with id (string) on select, null on deselect
+ */
+export function renderDocumentList(container, documents, selectedId = null, onSelect = null) {
   if (!documents.length) {
     container.innerHTML = `
-      <div class="flex flex-col items-center justify-center py-16 text-[var(--color-text-muted)]">
-        <span class="text-5xl mb-3">📭</span>
-        <p class="text-sm">${t('home.noDocuments')}</p>
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4rem 1rem;color:var(--color-text-muted)">
+        <span style="font-size:3rem;margin-bottom:.75rem">📭</span>
+        <p style="font-size:.875rem">${t('home.noDocuments')}</p>
       </div>
     `;
     return;
   }
 
-  container.innerHTML = `
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" id="doc-grid">
-      ${documents.map(documentCard).join('')}
-    </div>
-  `;
+  container.innerHTML = `<div id="doc-list">${documents.map(doc => documentRow(doc, doc.id === selectedId)).join('')}</div>`;
 
-  const grid = container.querySelector('#doc-grid');
+  const list = container.querySelector('#doc-list');
 
-  delegate(grid, '[data-action="view"]', 'click', (e, btn) => {
-    router.navigate(`#/view/${btn.dataset.id}`);
-  });
+  delegate(list, '.doc-list-item', 'click', (e, row) => {
+    const id           = row.dataset.id;
+    const alreadySel   = row.dataset.selected === 'true';
 
-  delegate(grid, '[data-action="edit"]', 'click', (e, btn) => {
-    router.navigate(`#/edit/${btn.dataset.id}`);
-  });
+    // Deselect all rows
+    list.querySelectorAll('.doc-list-item').forEach(r => {
+      r.dataset.selected = 'false';
+      r.style.backgroundColor = '';
+      r.style.borderLeftColor = 'transparent';
+    });
 
-  delegate(grid, '[data-action="favorite"]', 'click', async (e, btn) => {
-    e.stopPropagation();
-    const id    = btn.dataset.id;
-    const isFav = btn.dataset.favorite === 'true';
-    try {
-      await api.updateDocument({ id, is_favorite: !isFav });
-      btn.dataset.favorite = String(!isFav);
-      btn.textContent = !isFav ? '⭐' : '☆';
-      const card     = grid.querySelector(`.doc-card[data-id="${id}"]`);
-      const favBadge = card?.querySelector('.doc-card-fav');
-      if (favBadge) favBadge.style.display = !isFav ? 'inline' : 'none';
-    } catch (err) {
-      showToast(t('card.saveError'), 'error');
+    if (alreadySel) {
+      // Click on already-selected row → deselect
+      onSelect ? onSelect(null) : router.navigate(`#/view/${id}`);
+    } else {
+      // Select this row
+      row.dataset.selected = 'true';
+      row.style.backgroundColor = 'var(--color-surface)';
+      row.style.borderLeftColor  = 'var(--color-primary)';
+      onSelect ? onSelect(id) : router.navigate(`#/view/${id}`);
     }
   });
+}
 
-  delegate(grid, '.doc-card', 'click', (e, card) => {
-    if (e.target.closest('button')) return;
-    router.navigate(`#/view/${card.dataset.id}`);
-  });
+// Backward-compatibility alias
+export function renderDocumentGrid(container, documents) {
+  renderDocumentList(container, documents);
 }

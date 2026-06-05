@@ -71,9 +71,6 @@ pub async fn search_documents(
     let mut params: Vec<Box<dyn rusqlite::ToSql>> = Vec::new();
     let mut param_idx = 1usize;
 
-    // Text search via FTS5
-    let use_fts = filters.query.as_ref().map(|q| !q.trim().is_empty()).unwrap_or(false);
-
     if let Some(ref cat_id) = filters.category_id {
         if !cat_id.is_empty() {
             conditions.push(format!("d.category_id = ?{}", param_idx));
@@ -146,24 +143,20 @@ pub async fn search_documents(
         }
     }
 
+    // Text search via LIKE — case-insensitive partial match on title and notes
+    if let Some(ref q) = filters.query {
+        let q_trim = q.trim();
+        if !q_trim.is_empty() {
+            let like_q = format!("%{}%", q_trim);
+            conditions.push(format!("(d.title LIKE ?{0} OR d.notes LIKE ?{0})", param_idx));
+            params.push(Box::new(like_q));
+            param_idx += 1;
+        }
+    }
+
     let where_clause = conditions.join(" AND ");
-
-    // FTS join if text query
-    let (fts_join, fts_condition) = if use_fts {
-        let q = filters.query.as_ref().unwrap().trim().to_string();
-        let fts_q = format!("{}*", q); // prefix search
-        let join = format!(
-            "JOIN documents_fts fts ON fts.rowid = d.rowid AND fts MATCH ?{}",
-            param_idx
-        );
-        params.push(Box::new(fts_q));
-        param_idx += 1;
-        (join, String::new())
-    } else {
-        (String::new(), String::new())
-    };
-
-    let _ = (fts_condition, param_idx); // suppress unused warnings
+    let fts_join = String::new();
+    let _ = param_idx;
 
     let count_sql = format!(
         "SELECT COUNT(*) FROM documents d {} WHERE {}",

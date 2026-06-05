@@ -62,27 +62,26 @@ export async function render(container) {
       // Validate writability
       const valid = await api.validateStoragePath(path);
       if (!valid) {
-        statusEl.innerHTML = `<p class="text-sm text-red-500">❌ ${t('setup.invalidPath')}</p>`;
+        statusEl.innerHTML = `<p class="text-sm text-red-500">${t('setup.invalidPath')}</p>`;
         statusEl.classList.remove('hidden');
         setupBtn.disabled = true;
         return;
       }
 
-      // Check if this folder already contains a DocVault archive
-      const isExistingVault = await api.checkVaultPath(path);
+      // Check if folder already has DocVault data — non-fatal, treat failure as new vault
+      let isExistingVault = false;
+      try { isExistingVault = await api.checkVaultPath(path); } catch { /* ignore */ }
+
       if (isExistingVault) {
-        statusEl.innerHTML = `
-          <p class="text-sm text-blue-600">📂 ${t('setup.existingVault')}</p>
-        `;
+        statusEl.innerHTML = `<p class="text-sm text-[var(--color-primary)]">${t('setup.existingVault')}</p>`;
       } else {
-        statusEl.innerHTML = `
-          <p class="text-sm text-green-600">✅ ${t('setup.validPath')} — ${t('setup.newVault')}</p>
-        `;
+        statusEl.innerHTML = `<p class="text-sm text-green-600">${t('setup.validPath')} — ${t('setup.newVault')}</p>`;
       }
       statusEl.classList.remove('hidden');
       setupBtn.disabled = false;
     } catch (err) {
-      console.error(err);
+      statusEl.innerHTML = `<p class="text-sm text-red-500">${err}</p>`;
+      statusEl.classList.remove('hidden');
     }
   });
 

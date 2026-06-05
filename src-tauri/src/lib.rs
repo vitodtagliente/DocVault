@@ -41,6 +41,7 @@ pub fn run() {
             commands::settings::update_setting,
             commands::settings::validate_storage_path,
             commands::settings::check_vault_path,
+            commands::settings::folder_exists,
             commands::settings::complete_setup,
             // Documents
             commands::documents::create_document,

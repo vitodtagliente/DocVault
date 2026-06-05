@@ -17,7 +17,8 @@ export function renderHeader(el) {
       'setup':         'page.setup',
       'sync':          'page.sync',
       'backup':        'page.backup',
-      'expiring':      'page.expiring',
+      'expiring':       'page.expiring',
+      'notifications':  'page.notifications',
     };
     const title = t(pageKey[currentPage] || 'page.home');
     const canGoBack = currentPage !== 'home' && currentPage !== 'setup';

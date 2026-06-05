@@ -25,6 +25,7 @@ export const getSettings     = ()             => call('get_settings');
 export const updateSetting   = (key, value)   => call('update_setting', { key, value });
 export const validateStoragePath = (path)     => call('validate_storage_path', { path });
 export const checkVaultPath  = (path)         => call('check_vault_path', { path });
+export const folderExists    = (path)         => call('folder_exists', { path });
 export const completeSetup   = (storagePath)  => call('complete_setup', { storagePath });
 
 // ─── Documents ───────────────────────────────────────────────────────────────
@@ -96,8 +97,10 @@ export async function saveFileDialog(defaultPath, filters = []) {
   return dialog.save({ defaultPath, filters });
 }
 
-export async function openFolderDialog() {
+export async function openFolderDialog(defaultPath) {
   const dialog = window.__TAURI__?.dialog;
   if (!dialog) throw new Error('Tauri dialog not available');
-  return dialog.open({ directory: true, multiple: false });
+  const opts = { directory: true, multiple: false };
+  if (defaultPath) opts.defaultPath = defaultPath;
+  return dialog.open(opts);
 }

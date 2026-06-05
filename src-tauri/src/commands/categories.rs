@@ -104,14 +104,6 @@ pub async fn delete_category(id: String, state: State<'_, AppState>) -> Result<(
         .map_err(|e| e.to_string())?
         .unwrap_or_default();
 
-    // Check if system category
-    let is_system: i32 = conn
-        .query_row("SELECT is_system FROM categories WHERE id = ?1", rusqlite::params![id], |r| r.get(0))
-        .map_err(|_| "Category not found".to_string())?;
-    if is_system != 0 {
-        return Err("Cannot delete a system category".to_string());
-    }
-
     // Check for associated documents
     let doc_count: i64 = conn
         .query_row("SELECT COUNT(*) FROM documents WHERE category_id = ?1 AND deleted_at IS NULL",

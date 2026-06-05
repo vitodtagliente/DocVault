@@ -9,7 +9,35 @@ import { showToast } from '../components/toast.js';
 import { openModal, closeModal, confirm } from '../components/modal.js';
 
 export async function render(container) {
+  injectCatStyles();
   await loadAndRender(container);
+}
+
+function injectCatStyles() {
+  if (document.getElementById('cat-styles')) return;
+  const s = document.createElement('style');
+  s.id = 'cat-styles';
+  s.textContent = `
+    .cat-row {
+      transition: box-shadow .15s ease, transform .12s ease;
+    }
+    .cat-row:hover {
+      box-shadow: 0 4px 16px rgba(0,0,0,.1);
+      transform: translateY(-1px);
+    }
+    .cat-row:hover .cat-btn {
+      opacity: 1;
+    }
+    .cat-btn {
+      opacity: .7;
+      transition: opacity .1s, background-color .1s;
+    }
+    .cat-btn:hover {
+      opacity: 1;
+      background-color: var(--color-border);
+    }
+  `;
+  document.head.appendChild(s);
 }
 
 async function loadAndRender(container) {
@@ -42,10 +70,12 @@ async function loadAndRender(container) {
     openNewCategoryModal(container);
   });
 
-  container.querySelectorAll('[data-delete-cat]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const id   = btn.dataset.deleteCat;
-      const name = btn.dataset.name;
+  // Use event delegation — more robust than per-button listeners
+  container.addEventListener('click', (e) => {
+    const deleteBtn = e.target.closest('[data-delete-cat]');
+    if (deleteBtn) {
+      const id   = deleteBtn.dataset.deleteCat;
+      const name = deleteBtn.dataset.name;
       confirm(t('cat.deleteConfirm', { name }), async () => {
         try {
           await api.deleteCategory(id);
@@ -55,35 +85,44 @@ async function loadAndRender(container) {
           showToast(t('cat.error') + err, 'error');
         }
       });
-    });
-  });
+      return;
+    }
 
-  container.querySelectorAll('[data-manage-fields]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      openFieldsModal(btn.dataset.manageFields, btn.dataset.name);
-    });
+    const fieldsBtn = e.target.closest('[data-manage-fields]');
+    if (fieldsBtn) {
+      openFieldsModal(fieldsBtn.dataset.manageFields, fieldsBtn.dataset.name, container);
+    }
   });
 }
 
 function categoryRow(cat) {
   return `
-    <div class="card flex items-center gap-3 py-3">
-      <div class="w-3 h-3 rounded-full flex-shrink-0" style="background:${cat.color}"></div>
-      <div class="flex-1 min-w-0">
-        <p class="font-medium text-sm text-[var(--color-text)]">${escHtml(cat.name)}</p>
-        <p class="text-xs text-[var(--color-text-muted)]">${cat.slug}</p>
+    <div class="card cat-row" style="display:flex;align-items:center;gap:.75rem;padding:.75rem 1rem">
+      <!-- Color swatch — inline styles only, no Tailwind sizing -->
+      <div style="width:1.25rem;height:1.25rem;border-radius:50%;flex-shrink:0;
+                  background-color:${cat.color};
+                  box-shadow:0 0 0 2px var(--color-bg),0 0 0 3.5px ${cat.color}"></div>
+
+      <div style="flex:1;min-width:0">
+        <p style="font-weight:500;font-size:.875rem;color:var(--color-text)">${escHtml(cat.name)}</p>
+        <p style="font-size:.75rem;color:var(--color-text-muted)">${cat.slug}</p>
       </div>
-      <div class="flex items-center gap-1">
-        <button class="btn-ghost text-xs px-2 py-1" data-manage-fields="${cat.id}" data-name="${escHtml(cat.name)}">
+
+      <div style="display:flex;align-items:center;gap:.25rem">
+        <button class="cat-btn"
+                style="font-size:.75rem;padding:.25rem .5rem;border-radius:var(--radius-md);
+                       border:none;background:none;cursor:pointer;
+                       color:var(--color-text-muted)"
+                data-manage-fields="${cat.id}" data-name="${escHtml(cat.name)}">
           ${t('cat.fields')}
         </button>
-        ${!cat.is_system
-          ? `<button class="btn-ghost text-xs px-2 py-1 text-red-500"
-                     data-delete-cat="${cat.id}" data-name="${escHtml(cat.name)}">
-               ${t('cat.delete')}
-             </button>`
-          : `<span class="text-xs text-[var(--color-text-muted)] px-2">${t('cat.system')}</span>`
-        }
+        <button class="cat-btn"
+                style="font-size:.75rem;padding:.25rem .5rem;border-radius:var(--radius-md);
+                       border:none;background:none;cursor:pointer;
+                       color:#ef4444"
+                data-delete-cat="${cat.id}" data-name="${escHtml(cat.name)}">
+          ${t('cat.delete')}
+        </button>
       </div>
     </div>
   `;
@@ -106,7 +145,12 @@ function openNewCategoryModal(container) {
           </div>
           <div>
             <label class="label text-xs">${t('cat.colorLabel')}</label>
-            <input type="color" id="new-cat-color" class="input h-9 p-1 cursor-pointer" value="#3b82f6" />
+            <div class="flex items-center gap-2 mt-1">
+              <input type="color" id="new-cat-color"
+                     style="width:2.25rem;height:2.25rem;padding:2px;border:1px solid var(--color-border);border-radius:var(--radius-md);background:none;cursor:pointer;"
+                     value="#3b82f6" />
+              <span id="color-hex" class="text-xs font-mono text-[var(--color-text-muted)]">#3b82f6</span>
+            </div>
           </div>
         </div>
       </div>
@@ -115,10 +159,10 @@ function openNewCategoryModal(container) {
       { label: t('cat.cancel'), variant: 'secondary', onClick: closeModal },
       {
         label: t('cat.create'), variant: 'primary', onClick: async () => {
-          const name = document.querySelector('#new-cat-name')?.value.trim();
+          const name  = document.querySelector('#new-cat-name')?.value.trim();
           if (!name) { showToast(t('cat.enterName'), 'warning'); return; }
-          const icon_  = document.querySelector('#new-cat-icon')?.value || 'folder';
-          const color  = document.querySelector('#new-cat-color')?.value || '#3b82f6';
+          const icon_ = document.querySelector('#new-cat-icon')?.value || 'folder';
+          const color = document.querySelector('#new-cat-color')?.value || '#3b82f6';
           try {
             await api.createCategory({ name, icon: icon_, color, fields: [] });
             closeModal();
@@ -131,9 +175,17 @@ function openNewCategoryModal(container) {
       },
     ],
   });
+
+  setTimeout(() => {
+    const colorInput = document.querySelector('#new-cat-color');
+    const hexSpan    = document.querySelector('#color-hex');
+    colorInput?.addEventListener('input', () => {
+      if (hexSpan) hexSpan.textContent = colorInput.value;
+    });
+  }, 50);
 }
 
-async function openFieldsModal(categoryId, categoryName) {
+async function openFieldsModal(categoryId, categoryName, container) {
   let fields;
   try {
     fields = await api.getPresetFields(categoryId);

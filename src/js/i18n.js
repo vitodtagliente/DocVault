@@ -14,6 +14,7 @@ const translations = {
     'nav.sync': 'Sync Drive',
     'nav.addDocument': '+ Add document',
     'nav.add': 'Add',
+    'nav.notifications': 'Notifications',
 
     // Page titles (header)
     'page.home': 'DocVault',
@@ -26,6 +27,7 @@ const translations = {
     'page.sync': 'Sync Google Drive',
     'page.backup': 'Backup & Restore',
     'page.expiring': 'Expiring documents',
+    'page.notifications': 'Notifications',
 
     // Setup
     'setup.welcome': 'Welcome to DocVault',
@@ -44,8 +46,24 @@ const translations = {
     'setup.success': 'Setup complete!',
     'setup.error': 'Setup error: ',
 
+    // Notifications
+    'notif.title': 'Notifications',
+    'notif.expired': 'Expired',
+    'notif.expiringSoon': 'Expiring soon',
+    'notif.none': 'No notifications — all documents are up to date',
+    'notif.openDoc': 'Open',
+    'notif.daysAgo': '{days}d ago',
+    'notif.inDays': 'in {days}d',
+    'notif.today': 'today',
+
+    // Missing folder
+    'app.missingFolder': 'Storage folder missing',
+    'app.missingFolderMsg': 'The configured storage folder no longer exists. Please reconfigure.',
+    'app.reconfigure': 'Reconfigure',
+
     // Home
     'home.search': 'Search documents, tags, notes…',
+    'home.selectDoc': 'Select a document to preview',
     'home.filters': 'Filters',
     'home.export': 'Export',
     'home.exportShort': 'Export',
@@ -267,6 +285,7 @@ const translations = {
     'nav.sync': 'Sync Drive',
     'nav.addDocument': '+ Aggiungi documento',
     'nav.add': 'Aggiungi',
+    'nav.notifications': 'Notifiche',
 
     // Page titles
     'page.home': 'DocVault',
@@ -279,6 +298,7 @@ const translations = {
     'page.sync': 'Sync Google Drive',
     'page.backup': 'Backup & Restore',
     'page.expiring': 'Documenti in scadenza',
+    'page.notifications': 'Notifiche',
 
     // Setup
     'setup.welcome': 'Benvenuto in DocVault',
@@ -297,8 +317,24 @@ const translations = {
     'setup.success': 'Configurazione completata!',
     'setup.error': 'Errore durante la configurazione: ',
 
+    // Notifications
+    'notif.title': 'Notifiche',
+    'notif.expired': 'Già scaduti',
+    'notif.expiringSoon': 'In scadenza',
+    'notif.none': 'Nessuna notifica — tutti i documenti sono in regola',
+    'notif.openDoc': 'Apri',
+    'notif.daysAgo': '{days} gg fa',
+    'notif.inDays': 'tra {days} gg',
+    'notif.today': 'oggi',
+
+    // Missing folder
+    'app.missingFolder': 'Cartella mancante',
+    'app.missingFolderMsg': 'La cartella di archiviazione non esiste più. Riconfigura l\'app.',
+    'app.reconfigure': 'Riconfigura',
+
     // Home
     'home.search': 'Cerca documenti, tag, note…',
+    'home.selectDoc': 'Seleziona un documento per vederlo',
     'home.filters': 'Filtri',
     'home.export': 'Esporta',
     'home.exportShort': 'Esporta',

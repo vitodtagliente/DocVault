@@ -27,6 +27,7 @@ const routes = [
   { pattern: /^#\/sync$/, page: 'sync' },
   { pattern: /^#\/backup$/, page: 'backup' },
   { pattern: /^#\/expiring$/, page: 'expiring' },
+  { pattern: /^#\/notifications$/, page: 'notifications' },
 ];
 
 let currentCleanup = null;

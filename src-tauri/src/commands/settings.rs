@@ -52,6 +52,13 @@ pub async fn check_vault_path(path: String) -> Result<bool, String> {
     Ok(Path::new(&path).join(".docvault").exists())
 }
 
+/// Returns true if the given folder path exists on the filesystem.
+#[tauri::command]
+pub async fn folder_exists(path: String) -> bool {
+    let p = Path::new(&path);
+    p.exists() && p.is_dir()
+}
+
 #[tauri::command]
 pub async fn complete_setup(
     storage_path: String,
