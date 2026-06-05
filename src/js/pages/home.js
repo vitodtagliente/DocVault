@@ -232,6 +232,22 @@ export async function render(container) {
         }
       });
 
+      // Auto-select a document set by another page (e.g. after edit, from notifications)
+      const pendingId = store.getState().pendingDocId;
+      if (pendingId) {
+        store.setState({ pendingDocId: null });
+        selectedDocId = pendingId;
+        openPreviewPanel();
+        loadPreview(pendingId);
+        const row = resultsContainer.querySelector(`[data-id="${pendingId}"]`);
+        if (row) {
+          row.dataset.selected = 'true';
+          row.style.backgroundColor = 'var(--color-surface)';
+          row.style.borderLeftColor  = 'var(--color-primary)';
+          setTimeout(() => row.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 80);
+        }
+      }
+
       statsBar.innerHTML = `
         <span>${result.total_count} ${result.total_count === 1 ? t('home.document') : t('home.documents')}</span>
         ${result.total_count > 0 ? `<span>· ${t('home.page')} ${currentPage + 1} ${t('home.of')} ${result.total_pages}</span>` : ''}

@@ -34,6 +34,7 @@ const faMap = {
   user:         'fa-user',
   palette:      'fa-palette',
   lock:         'fa-lock',
+  warning:      'fa-triangle-exclamation',
 };
 
 // Map Tailwind size classes to rem values

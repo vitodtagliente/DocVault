@@ -3,15 +3,29 @@ import { icon } from '../utils/icons.js';
 
 export function filterBarHtml(filters, categories, tags) {
   return `
-    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 items-end" id="filter-bar">
+    <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(148px, 1fr));gap:.75rem;align-items:end" id="filter-bar">
+
       <!-- Category -->
       <div class="flex flex-col gap-1">
         <label class="label text-xs">${t('filter.category')}</label>
         <select class="input text-sm py-1.5" id="filter-category">
           <option value="">${t('filter.allCategories')}</option>
-          ${categories.map(c => `
+          ${(categories || []).map(c => `
             <option value="${c.id}" ${filters.category_id === c.id ? 'selected' : ''}>
               ${escHtml(c.name)}
+            </option>
+          `).join('')}
+        </select>
+      </div>
+
+      <!-- Tag -->
+      <div class="flex flex-col gap-1">
+        <label class="label text-xs">${t('filter.tag')}</label>
+        <select class="input text-sm py-1.5" id="filter-tag">
+          <option value="">${t('filter.allTags')}</option>
+          ${(tags || []).map(tag => `
+            <option value="${tag.id}" ${(filters.tag_ids || []).includes(tag.id) ? 'selected' : ''}>
+              ${escHtml(tag.name)}
             </option>
           `).join('')}
         </select>
@@ -38,9 +52,9 @@ export function filterBarHtml(filters, categories, tags) {
       </div>
 
       <!-- Toggles + Reset -->
-      <div class="flex flex-col gap-1 lg:col-span-3">
+      <div class="flex flex-col gap-1" style="grid-column: span 2">
         <label class="label text-xs opacity-0 select-none">·</label>
-        <div class="flex items-center gap-4 h-9">
+        <div class="flex items-center gap-4 h-9 flex-wrap">
           <label class="flex items-center gap-1.5 text-sm text-[var(--color-text)] cursor-pointer select-none">
             <input type="checkbox" id="filter-favorites" class="rounded" ${filters.favorites_only ? 'checked' : ''} />
             ${icon('star', 'w-3.5 h-3.5', '#f59e0b')} ${t('filter.favorites')}
@@ -59,16 +73,16 @@ export function filterBarHtml(filters, categories, tags) {
 export function mountFilterBar(container, onChange) {
   const get = (id) => container.querySelector(`#${id}`);
 
-  // Keys match Rust SearchFilters snake_case field names exactly
   const collect = () => ({
     category_id:    get('filter-category')?.value || '',
+    tag_ids:        get('filter-tag')?.value ? [get('filter-tag').value] : [],
     year_filter:    parseInt(get('filter-year')?.value || '0'),
     sort_by:        get('filter-sort')?.value || 'date_desc',
     favorites_only: get('filter-favorites')?.checked || false,
     expiring_only:  get('filter-expiring')?.checked || false,
   });
 
-  ['filter-category', 'filter-year', 'filter-sort'].forEach(id => {
+  ['filter-category', 'filter-tag', 'filter-year', 'filter-sort'].forEach(id => {
     get(id)?.addEventListener('change', () => onChange(collect()));
   });
   ['filter-favorites', 'filter-expiring'].forEach(id => {
@@ -76,11 +90,12 @@ export function mountFilterBar(container, onChange) {
   });
   get('filter-reset')?.addEventListener('click', () => {
     if (get('filter-category'))  get('filter-category').value = '';
+    if (get('filter-tag'))       get('filter-tag').value = '';
     if (get('filter-year'))      get('filter-year').value = '0';
     if (get('filter-sort'))      get('filter-sort').value = 'date_desc';
     if (get('filter-favorites')) get('filter-favorites').checked = false;
     if (get('filter-expiring'))  get('filter-expiring').checked = false;
-    onChange({ category_id: '', year_filter: 0, sort_by: 'date_desc', favorites_only: false, expiring_only: false });
+    onChange({ category_id: '', tag_ids: [], year_filter: 0, sort_by: 'date_desc', favorites_only: false, expiring_only: false });
   });
 }
 

@@ -4,6 +4,7 @@
 
 import * as api from '../api.js';
 import store from '../store.js';
+
 import { t } from '../i18n.js';
 import { icon } from '../utils/icons.js';
 import { showToast } from '../components/toast.js';
@@ -166,29 +167,56 @@ export async function render(container) {
     submitBtn.disabled = true;
     submitBtn.textContent = t('add.saving');
 
+    const buildPayload = (titleOverride, force = false) => ({
+      title: titleOverride,
+      source_file_path: path,
+      category_id: form.querySelector('#preset-category').value,
+      document_date: form.querySelector('#doc-date').value,
+      expiry_date: form.querySelector('#doc-expiry').value || null,
+      notes: form.querySelector('#doc-notes').value,
+      tags: tagInput.getTags(),
+      custom_fields: collectCustomFields(form),
+      run_ocr: form.querySelector('#run-ocr').checked,
+      force,
+    });
+
+    const resetBtn = () => {
+      submitBtn.disabled = false;
+      submitBtn.textContent = t('add.save');
+    };
+
+    const baseTitle = form.querySelector('#doc-title').value.trim();
     try {
-      await api.createDocument({
-        title: form.querySelector('#doc-title').value.trim(),
-        source_file_path: path,
-        category_id: form.querySelector('#preset-category').value,
-        document_date: form.querySelector('#doc-date').value,
-        expiry_date: form.querySelector('#doc-expiry').value || null,
-        notes: form.querySelector('#doc-notes').value,
-        tags: tagInput.getTags(),
-        custom_fields: collectCustomFields(form),
-        run_ocr: form.querySelector('#run-ocr').checked,
-      });
+      const doc = await api.createDocument(buildPayload(baseTitle, false));
       showToast(t('add.saved'), 'success');
+      store.setState({ pendingDocId: doc.id });
       router.navigate('#/');
     } catch (err) {
       if (String(err).startsWith('DUPLICATE:')) {
-        const id = String(err).replace('DUPLICATE:', '');
-        showToast(t('add.duplicate'), 'warning');
-        router.navigate(`#/view/${id}`);
+        // Same file content already catalogued — add with a counter suffix and force=true
+        let counter = 2;
+        let resolved = false;
+        while (counter <= 20 && !resolved) {
+          const newTitle = `${baseTitle.replace(/ \(\d+\)$/, '')} (${counter})`;
+          try {
+            const doc = await api.createDocument(buildPayload(newTitle, true));
+            showToast(t('add.savedAs', { title: newTitle }), 'success');
+            store.setState({ pendingDocId: doc.id });
+            router.navigate('#/');
+            resolved = true;
+          } catch (err2) {
+            if (!String(err2).startsWith('DUPLICATE:')) {
+              showToast(t('add.error') + err2, 'error');
+              resetBtn();
+              return;
+            }
+            counter++;
+          }
+        }
+        if (!resolved) { showToast(t('add.error') + err, 'error'); resetBtn(); }
       } else {
         showToast(t('add.error') + err, 'error');
-        submitBtn.disabled = false;
-        submitBtn.textContent = t('add.save');
+        resetBtn();
       }
     }
   });

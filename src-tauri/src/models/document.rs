@@ -34,6 +34,9 @@ pub struct CreateDocumentPayload {
     pub tags: Vec<String>,
     pub custom_fields: Vec<CustomFieldValue>,
     pub run_ocr: bool,
+    /// When true, bypasses duplicate-hash check so the same file can be added
+    /// multiple times (caller is responsible for giving a distinct title).
+    pub force: Option<bool>,
 }
 
 #[derive(Debug, Deserialize)]

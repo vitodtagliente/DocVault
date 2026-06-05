@@ -66,11 +66,13 @@ export async function render(container, id) {
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="label" for="doc-date">${t('add.documentDate')}</label>
-            <input type="date" id="doc-date" class="input" value="${doc.document_date}" />
+            <input type="date" id="doc-date" class="input" value="${doc.document_date}"
+                 style="-webkit-appearance:auto;appearance:auto;cursor:pointer;position:relative;z-index:1" />
           </div>
           <div>
             <label class="label" for="doc-expiry">${t('add.expiryDate')}</label>
-            <input type="date" id="doc-expiry" class="input" value="${doc.expiry_date || ''}" />
+            <input type="date" id="doc-expiry" class="input" value="${doc.expiry_date || ''}"
+                   style="-webkit-appearance:auto;appearance:auto;cursor:pointer;position:relative;z-index:1" />
           </div>
         </div>
 
@@ -89,7 +91,7 @@ export async function render(container, id) {
         <!-- Actions -->
         <div class="flex gap-3 pt-2">
           <button type="submit" class="btn-primary flex-1" id="submit-btn">${t('edit.save')}</button>
-          <a href="#/view/${id}" class="btn-secondary">${t('edit.cancel')}</a>
+          <a href="#/" class="btn-secondary">${t('edit.cancel')}</a>
         </div>
       </form>
     </div>
@@ -134,7 +136,8 @@ export async function render(container, id) {
         custom_fields: collectCustomFields(form),
       });
       showToast(t('edit.saved'), 'success');
-      router.navigate(`#/view/${id}`);
+      store.setState({ pendingDocId: id });
+      router.navigate('#/');
     } catch (err) {
       showToast(t('edit.error') + err, 'error');
       submitBtn.disabled = false;

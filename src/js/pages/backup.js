@@ -40,7 +40,9 @@ export async function render(container) {
           </span>
           <div>
             <h2 class="text-sm font-semibold text-[var(--color-text)]">${t('backup.restoreTitle')}</h2>
-            <p class="text-xs text-[var(--color-text-muted)]">${t('backup.restoreWarning')}</p>
+            <p class="text-xs text-[var(--color-text-muted)]" style="display:flex;align-items:center;gap:.375rem">
+              ${icon('warning', 'w-3.5 h-3.5', '#f59e0b')} ${t('backup.restoreWarning')}
+            </p>
           </div>
         </div>
         <button id="btn-restore" class="btn-danger" style="display:flex;align-items:center;gap:.5rem">

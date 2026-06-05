@@ -27,10 +27,12 @@ pub async fn create_document(
     // Compute hash
     let file_hash = sha256_file(source).map_err(|e| e.to_string())?;
 
-    // Check for duplicates
-    if let Some(existing_id) = queries::find_document_by_hash(&conn, &file_hash)
-        .map_err(|e| e.to_string())? {
-        return Err(format!("DUPLICATE:{}", existing_id));
+    // Check for duplicates (skipped when force=true so the same file can be catalogued multiple times)
+    if !payload.force.unwrap_or(false) {
+        if let Some(existing_id) = queries::find_document_by_hash(&conn, &file_hash)
+            .map_err(|e| e.to_string())? {
+            return Err(format!("DUPLICATE:{}", existing_id));
+        }
     }
 
     // Get category for slug
