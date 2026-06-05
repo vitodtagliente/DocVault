@@ -31,7 +31,7 @@ pub fn load_app_settings(conn: &Connection) -> Result<AppSettings> {
     let setup_complete = get_setting(conn, "setup_complete")?.unwrap_or_else(|| "0".into()) == "1";
     let license_status = get_setting(conn, "license_status")?.unwrap_or_else(|| "free".into());
     let theme = get_setting(conn, "theme")?.unwrap_or_else(|| "system".into());
-    let language = get_setting(conn, "language")?.unwrap_or_else(|| "it".into());
+    let language = get_setting(conn, "language")?.unwrap_or_default();
     let last_sync_at = get_setting(conn, "last_sync_at")?;
 
     Ok(AppSettings {

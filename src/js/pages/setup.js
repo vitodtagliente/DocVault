@@ -3,6 +3,7 @@
  */
 
 import * as api from '../api.js';
+import { t } from '../i18n.js';
 import { showToast } from '../components/toast.js';
 import router from '../router.js';
 
@@ -12,36 +13,36 @@ export async function render(container) {
       <div class="w-full max-w-md space-y-6">
         <div class="text-center">
           <div class="text-6xl mb-3">🗄️</div>
-          <h1 class="text-2xl font-bold text-[var(--color-text)]">Benvenuto in DocVault</h1>
+          <h1 class="text-2xl font-bold text-[var(--color-text)]">${t('setup.welcome')}</h1>
           <p class="mt-2 text-sm text-[var(--color-text-muted)]">
-            Scegli la cartella dove salvare i tuoi documenti per iniziare.
+            ${t('setup.subtitle')}
           </p>
         </div>
 
         <div class="card space-y-4">
           <div>
-            <label class="label">Cartella di archiviazione</label>
+            <label class="label">${t('setup.folderLabel')}</label>
             <div class="flex gap-2">
               <input type="text" id="storage-path" class="input flex-1" readonly
-                     placeholder="Nessuna cartella selezionata" />
+                     placeholder="${t('setup.placeholder')}" />
               <button id="browse-btn" class="btn-secondary whitespace-nowrap">
-                📁 Sfoglia
+                ${t('setup.browse')}
               </button>
             </div>
             <p class="text-xs text-[var(--color-text-muted)] mt-1">
-              I tuoi documenti saranno organizzati in questa cartella, leggibile anche senza l'app.
+              ${t('setup.hint')}
             </p>
           </div>
 
           <div id="path-status" class="hidden"></div>
 
           <button id="setup-btn" class="btn-primary w-full" disabled>
-            Inizia ad usare DocVault →
+            ${t('setup.startBtn')}
           </button>
         </div>
 
         <p class="text-xs text-center text-[var(--color-text-muted)]">
-          Puoi cambiare la cartella in seguito dalle Impostazioni.
+          ${t('setup.footerHint')}
         </p>
       </div>
     </div>
@@ -58,17 +59,28 @@ export async function render(container) {
       if (!path) return;
       pathInput.value = path;
 
-      // Validate
+      // Validate writability
       const valid = await api.validateStoragePath(path);
-      if (valid) {
-        statusEl.innerHTML = `<p class="text-sm text-green-600">✅ Cartella valida e scrivibile</p>`;
-        statusEl.classList.remove('hidden');
-        setupBtn.disabled = false;
-      } else {
-        statusEl.innerHTML = `<p class="text-sm text-red-500">❌ Cartella non valida o non scrivibile</p>`;
+      if (!valid) {
+        statusEl.innerHTML = `<p class="text-sm text-red-500">❌ ${t('setup.invalidPath')}</p>`;
         statusEl.classList.remove('hidden');
         setupBtn.disabled = true;
+        return;
       }
+
+      // Check if this folder already contains a DocVault archive
+      const isExistingVault = await api.checkVaultPath(path);
+      if (isExistingVault) {
+        statusEl.innerHTML = `
+          <p class="text-sm text-blue-600">📂 ${t('setup.existingVault')}</p>
+        `;
+      } else {
+        statusEl.innerHTML = `
+          <p class="text-sm text-green-600">✅ ${t('setup.validPath')} — ${t('setup.newVault')}</p>
+        `;
+      }
+      statusEl.classList.remove('hidden');
+      setupBtn.disabled = false;
     } catch (err) {
       console.error(err);
     }
@@ -79,16 +91,16 @@ export async function render(container) {
     if (!path) return;
 
     setupBtn.disabled = true;
-    setupBtn.textContent = 'Configurazione in corso…';
+    setupBtn.textContent = t('setup.configuring');
 
     try {
       await api.completeSetup(path);
-      showToast('Configurazione completata!', 'success');
+      showToast(t('setup.success'), 'success');
       router.navigate('#/');
     } catch (err) {
-      showToast('Errore durante la configurazione: ' + err, 'error');
+      showToast(t('setup.error') + err, 'error');
       setupBtn.disabled = false;
-      setupBtn.textContent = 'Inizia ad usare DocVault →';
+      setupBtn.textContent = t('setup.startBtn');
     }
   });
 }

@@ -3,6 +3,8 @@
  */
 
 import * as api from '../api.js';
+import { t } from '../i18n.js';
+import { icon } from '../utils/icons.js';
 import { showToast } from '../components/toast.js';
 import { confirm } from '../components/modal.js';
 import { expiryBadgeHtml } from '../components/expiry-badge.js';
@@ -21,7 +23,7 @@ export async function render(container, id) {
   try {
     detail = await api.getDocument(id);
   } catch (err) {
-    container.innerHTML = `<p class="text-red-500 text-sm">Documento non trovato</p>`;
+    container.innerHTML = `<p class="text-red-500 text-sm">${t('view.notFound')}</p>`;
     return;
   }
 
@@ -46,10 +48,10 @@ export async function render(container, id) {
           </p>
         </div>
         <div class="flex gap-2 flex-wrap">
-          <button id="btn-reveal" class="btn-secondary text-sm">📂 Mostra in Explorer</button>
-          <button id="btn-open" class="btn-secondary text-sm">↗️ Apri con…</button>
-          <a href="#/edit/${id}" class="btn-secondary text-sm">✏️ Modifica</a>
-          <button id="btn-delete" class="btn-danger text-sm">🗑️ Elimina</button>
+          <button id="btn-reveal" class="btn-secondary text-sm gap-1.5 flex items-center">${icon('folderOpen','w-4 h-4')} ${t('view.showInExplorer')}</button>
+          <button id="btn-open"   class="btn-secondary text-sm gap-1.5 flex items-center">${icon('externalLink','w-4 h-4')} ${t('view.openWith')}</button>
+          <a href="#/edit/${id}"  class="btn-secondary text-sm gap-1.5 flex items-center">${icon('pencil','w-4 h-4')} ${t('view.edit')}</a>
+          <button id="btn-delete" class="btn-danger text-sm gap-1.5 flex items-center">${icon('trash','w-4 h-4')} ${t('view.delete')}</button>
         </div>
       </div>
 
@@ -66,10 +68,9 @@ export async function render(container, id) {
 
         <!-- Metadata (2/5) -->
         <div class="lg:col-span-2 space-y-4">
-          <!-- Custom fields -->
           ${detail.custom_fields.filter(cf => cf.value).length ? `
             <div class="card space-y-2">
-              <h3 class="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">Dettagli</h3>
+              <h3 class="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">${t('view.details')}</h3>
               ${detail.custom_fields.filter(cf => cf.value).map(cf => `
                 <div>
                   <p class="text-xs text-[var(--color-text-muted)]">${escHtml(cf.field_label)}</p>
@@ -79,36 +80,33 @@ export async function render(container, id) {
             </div>
           ` : ''}
 
-          <!-- Tags -->
           ${detail.tags.length ? `
             <div class="card">
-              <h3 class="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)] mb-2">Tag</h3>
+              <h3 class="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)] mb-2">${t('view.tags')}</h3>
               <div class="flex flex-wrap gap-1">
-                ${detail.tags.map(t => `
-                  <span class="tag-chip" style="background:${t.color}">${escHtml(t.name)}</span>
+                ${detail.tags.map(tag => `
+                  <span class="tag-chip" style="background:${tag.color}">${escHtml(tag.name)}</span>
                 `).join('')}
               </div>
             </div>
           ` : ''}
 
-          <!-- Notes -->
           ${doc.notes ? `
             <div class="card">
-              <h3 class="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)] mb-2">Note</h3>
+              <h3 class="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)] mb-2">${t('view.notes')}</h3>
               <p class="text-sm text-[var(--color-text)] whitespace-pre-wrap">${escHtml(doc.notes)}</p>
             </div>
           ` : ''}
 
-          <!-- OCR -->
           <div class="card">
             <div class="flex items-center justify-between mb-2">
-              <h3 class="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">Testo OCR</h3>
-              <button id="btn-ocr" class="btn-ghost text-xs px-2 py-1">🔍 Esegui OCR</button>
+              <h3 class="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">${t('view.ocrText')}</h3>
+              <button id="btn-ocr" class="btn-ghost text-xs px-2 py-1">${t('view.runOcr')}</button>
             </div>
             <div id="ocr-text" class="text-xs text-[var(--color-text-muted)] max-h-40 overflow-y-auto">
               ${doc.ocr_text
                 ? `<p class="whitespace-pre-wrap">${escHtml(doc.ocr_text)}</p>`
-                : '<p class="italic">Nessun testo estratto</p>'}
+                : `<p class="italic">${t('view.noOcrText')}</p>`}
             </div>
           </div>
         </div>
@@ -116,63 +114,60 @@ export async function render(container, id) {
     </div>
   `;
 
-  // Load viewer
   loadViewer(container.querySelector('#viewer-container'), doc, id);
 
-  // Action buttons
   container.querySelector('#btn-reveal')?.addEventListener('click', async () => {
     try { await api.revealInFileManager(id); }
-    catch (err) { showToast('Errore: ' + err, 'error'); }
+    catch (err) { showToast(t('view.error') + err, 'error'); }
   });
 
   container.querySelector('#btn-open')?.addEventListener('click', async () => {
     try { await api.openWithSystem(id); }
-    catch (err) { showToast('Errore: ' + err, 'error'); }
+    catch (err) { showToast(t('view.error') + err, 'error'); }
   });
 
   container.querySelector('#btn-delete')?.addEventListener('click', () => {
-    confirm(`Eliminare "${doc.title}"? Il file fisico non verrà rimosso.`,
+    confirm(
+      t('view.deleteConfirm', { title: doc.title }),
       async () => {
         try {
           await api.deleteDocument(id);
-          showToast('Documento eliminato', 'success');
+          showToast(t('view.deleted'), 'success');
           router.navigate('#/');
         } catch (err) {
-          showToast('Errore: ' + err, 'error');
+          showToast(t('view.error') + err, 'error');
         }
       },
-      'Elimina documento',
+      t('view.deleteTitle'),
     );
   });
 
   container.querySelector('#btn-ocr')?.addEventListener('click', async () => {
-    const ocrBtn = container.querySelector('#btn-ocr');
+    const ocrBtn  = container.querySelector('#btn-ocr');
     const ocrText = container.querySelector('#ocr-text');
     ocrBtn.disabled = true;
-    ocrBtn.textContent = 'In corso…';
+    ocrBtn.textContent = t('view.ocrRunning');
     try {
       const text = await api.runOcr(id, ['ita', 'eng']);
       ocrText.innerHTML = `<p class="whitespace-pre-wrap">${escHtml(text)}</p>`;
-      showToast('OCR completato!', 'success');
+      showToast(t('view.ocrDone'), 'success');
     } catch (err) {
-      showToast('OCR fallito: ' + err, 'error');
+      showToast(t('view.ocrFailed') + err, 'error');
     } finally {
       ocrBtn.disabled = false;
-      ocrBtn.textContent = '🔍 Esegui OCR';
+      ocrBtn.textContent = t('view.runOcr');
     }
   });
 }
 
 async function loadViewer(viewerEl, doc, id) {
   const mime = doc.mime_type;
-
   try {
     if (mime.startsWith('image/')) {
       const { renderImageViewer } = await import('../viewers/image-viewer.js');
       const bytes = await api.readFileBytes(id);
       const blob = new Blob([new Uint8Array(bytes)], { type: mime });
-      const url = URL.createObjectURL(blob);
-      renderImageViewer(viewerEl, url);
+      renderImageViewer(viewerEl, URL.createObjectURL(blob));
     } else if (mime === 'application/pdf') {
       const { renderPdfViewer } = await import('../viewers/pdf-viewer.js');
       const bytes = await api.readFileBytes(id);
@@ -185,7 +180,7 @@ async function loadViewer(viewerEl, doc, id) {
       viewerEl.innerHTML = `
         <div class="flex flex-col items-center justify-center h-full p-8 text-[var(--color-text-muted)]">
           <div class="text-6xl mb-4">📎</div>
-          <p class="text-sm">Anteprima non disponibile per questo tipo di file.</p>
+          <p class="text-sm">${t('view.noPreview')}</p>
           <p class="text-xs mt-1">${doc.file_extension.toUpperCase().replace('.','')}</p>
         </div>
       `;
@@ -193,7 +188,7 @@ async function loadViewer(viewerEl, doc, id) {
   } catch (err) {
     viewerEl.innerHTML = `
       <div class="flex items-center justify-center h-full p-8 text-red-500 text-sm">
-        Errore caricamento: ${escHtml(String(err))}
+        ${t('view.loadError')}${escHtml(String(err))}
       </div>
     `;
   }

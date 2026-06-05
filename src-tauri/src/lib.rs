@@ -40,6 +40,7 @@ pub fn run() {
             commands::settings::get_settings,
             commands::settings::update_setting,
             commands::settings::validate_storage_path,
+            commands::settings::check_vault_path,
             commands::settings::complete_setup,
             // Documents
             commands::documents::create_document,

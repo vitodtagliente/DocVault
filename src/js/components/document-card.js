@@ -1,12 +1,9 @@
 import { formatDate } from '../utils/date.js';
 import { formatFileSize } from '../utils/format.js';
 import { expiryStatus, daysUntilExpiry } from '../utils/date.js';
+import { t } from '../i18n.js';
+import { icon } from '../utils/icons.js';
 
-/**
- * Renders a document card HTML string.
- * @param {object} doc - DocumentListItem
- * @returns {string} HTML
- */
 export function documentCard(doc) {
   const expiry = expiryStatus(doc.expiry_date);
   const expiryClass = {
@@ -32,7 +29,7 @@ export function documentCard(doc) {
                   style="background:${doc.category_color}">
               ${doc.category_name}
             </span>
-            ${doc.is_favorite ? '<span title="Preferito">⭐</span>' : ''}
+            ${doc.is_favorite ? `<span title="${t('card.favorite')}">⭐</span>` : ''}
           </div>
           <h3 class="text-sm font-medium text-[var(--color-text)] truncate" title="${escHtml(doc.title)}">
             ${escHtml(doc.title)}
@@ -51,19 +48,24 @@ export function documentCard(doc) {
 
       ${tags.length ? `
         <div class="flex flex-wrap gap-1 mt-1">
-          ${tags.map(t => `
-            <span class="tag-chip" style="background:${t.color}">${escHtml(t.name)}</span>
+          ${tags.map(tag => `
+            <span class="tag-chip" style="background:${tag.color}">${escHtml(tag.name)}</span>
           `).join('')}
           ${doc.tags.length > 3 ? `<span class="badge bg-[var(--color-border)] text-[var(--color-text-muted)]">+${doc.tags.length - 3}</span>` : ''}
         </div>
       ` : ''}
 
       <div class="flex items-center gap-1 mt-2 pt-2 border-t border-[var(--color-border)]">
-        <button class="btn-ghost text-xs px-2 py-1" data-action="view" data-id="${doc.id}">👁 Apri</button>
-        <button class="btn-ghost text-xs px-2 py-1" data-action="edit" data-id="${doc.id}">✏️ Modifica</button>
-        <button class="btn-ghost text-xs px-2 py-1 ml-auto" data-action="favorite" data-id="${doc.id}"
-                data-favorite="${doc.is_favorite}">
-          ${doc.is_favorite ? '⭐' : '☆'}
+        <button class="btn-ghost text-xs px-2 py-1 gap-1 flex items-center" data-action="view" data-id="${doc.id}">
+          ${icon('eye', 'w-3.5 h-3.5')} ${t('card.open')}
+        </button>
+        <button class="btn-ghost text-xs px-2 py-1 gap-1 flex items-center" data-action="edit" data-id="${doc.id}">
+          ${icon('pencil', 'w-3.5 h-3.5')} ${t('card.edit')}
+        </button>
+        <button class="btn-ghost text-xs px-2 py-1 ml-auto text-[var(--color-text-muted)]"
+                data-action="favorite" data-id="${doc.id}" data-favorite="${doc.is_favorite}"
+                title="${t('card.favorite')}">
+          ${doc.is_favorite ? '★' : '☆'}
         </button>
       </div>
     </div>
@@ -84,9 +86,9 @@ function getFileIcon(ext, mime) {
 function expiryLabel(expiryDate) {
   const days = daysUntilExpiry(expiryDate);
   if (days === null) return '';
-  if (days < 0) return `Scaduto ${Math.abs(days)} gg fa`;
-  if (days === 0) return 'Scade oggi';
-  return `Scade in ${days} gg`;
+  if (days < 0)  return t('card.expiredDaysAgo', { days: Math.abs(days) });
+  if (days === 0) return t('card.expiresToday');
+  return t('card.expiresInDays', { days });
 }
 
 function escHtml(str) {

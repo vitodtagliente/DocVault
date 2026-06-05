@@ -1,11 +1,12 @@
 /**
  * Application entry point.
- * Initializes theme, loads settings, renders shell components, starts router.
+ * Initializes i18n, theme, loads settings, renders shell components, starts router.
  */
 
 import router from './router.js';
 import store from './store.js';
 import * as api from './api.js';
+import { initI18n } from './i18n.js';
 import { renderSidebar } from './components/sidebar.js';
 import { renderHeader } from './components/header.js';
 import { renderBottomNav } from './components/bottom-nav.js';
@@ -15,6 +16,9 @@ async function init() {
     // Load settings
     const settings = await api.getSettings();
     store.setState({ settings });
+
+    // Initialize i18n — empty/missing language triggers auto-detection
+    initI18n(settings.language || '');
 
     // Apply theme
     applyTheme(settings.theme);
@@ -34,6 +38,14 @@ async function init() {
     // Subscribe to theme changes
     store.subscribe('settings', (s) => {
       if (s) applyTheme(s.theme);
+    });
+
+    // Re-render shell and current page when language changes
+    store.subscribe('lang', () => {
+      renderSidebar(document.getElementById('sidebar'));
+      renderHeader(document.getElementById('header'));
+      renderBottomNav(document.getElementById('bottom-nav'));
+      router.reload();
     });
 
     // If setup not complete, go to setup wizard
@@ -59,7 +71,6 @@ function applyTheme(theme) {
   } else if (theme === 'light') {
     html.classList.remove('dark');
   } else {
-    // system
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     html.classList.toggle('dark', prefersDark);
   }

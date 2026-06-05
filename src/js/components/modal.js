@@ -1,17 +1,8 @@
 /**
  * Generic modal component.
- *
- * Usage:
- *   import { openModal, closeModal } from '../components/modal.js';
- *   openModal({
- *     title: 'Conferma',
- *     body: '<p>Sei sicuro?</p>',
- *     actions: [
- *       { label: 'Annulla', variant: 'secondary', onClick: closeModal },
- *       { label: 'Elimina', variant: 'danger', onClick: () => { doDelete(); closeModal(); } },
- *     ]
- *   });
  */
+
+import { t } from '../i18n.js';
 
 let activeModal = null;
 
@@ -29,7 +20,7 @@ export function openModal({ title, body, actions = [], onClose } = {}) {
                 shadow-xl w-full max-w-md max-h-[90vh] flex flex-col" role="dialog" aria-modal="true">
       <div class="flex items-center justify-between px-5 py-4 border-b border-[var(--color-border)]">
         <h2 class="text-base font-semibold text-[var(--color-text)]">${title || ''}</h2>
-        <button id="modal-close" class="btn-ghost p-1 text-lg" aria-label="Chiudi">×</button>
+        <button id="modal-close" class="btn-ghost p-1 text-lg" aria-label="${t('modal.close')}">${t('modal.close')}</button>
       </div>
       <div class="flex-1 overflow-y-auto px-5 py-4 text-sm text-[var(--color-text)]">
         ${body || ''}
@@ -62,7 +53,6 @@ export function openModal({ title, body, actions = [], onClose } = {}) {
     btn.addEventListener('click', () => actions[idx]?.onClick?.());
   });
 
-  // Focus trap
   requestAnimationFrame(() => modal.querySelector('button')?.focus());
 }
 
@@ -71,14 +61,13 @@ export function closeModal() {
   activeModal = null;
 }
 
-/** Convenience: confirm dialog */
-export function confirm(message, onConfirm, title = 'Conferma') {
+export function confirm(message, onConfirm, title) {
   openModal({
-    title,
+    title: title || t('modal.confirm'),
     body: `<p>${message}</p>`,
     actions: [
-      { label: 'Annulla', variant: 'secondary', onClick: closeModal },
-      { label: 'Conferma', variant: 'primary', onClick: () => { closeModal(); onConfirm(); } },
+      { label: t('modal.cancel'),  variant: 'secondary', onClick: closeModal },
+      { label: t('modal.confirm'), variant: 'primary',   onClick: () => { closeModal(); onConfirm(); } },
     ],
   });
 }

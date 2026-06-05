@@ -1,20 +1,16 @@
 import { documentCard } from './document-card.js';
 import { delegate } from '../utils/dom.js';
 import * as api from '../api.js';
+import { t } from '../i18n.js';
 import { showToast } from './toast.js';
 import router from '../router.js';
 
-/**
- * Renders document grid into `container`.
- * @param {HTMLElement} container
- * @param {object[]} documents - DocumentListItem[]
- */
 export function renderDocumentGrid(container, documents) {
   if (!documents.length) {
     container.innerHTML = `
       <div class="flex flex-col items-center justify-center py-16 text-[var(--color-text-muted)]">
         <span class="text-5xl mb-3">📭</span>
-        <p class="text-sm">Nessun documento trovato</p>
+        <p class="text-sm">${t('home.noDocuments')}</p>
       </div>
     `;
     return;
@@ -28,7 +24,6 @@ export function renderDocumentGrid(container, documents) {
 
   const grid = container.querySelector('#doc-grid');
 
-  // Delegate click events
   delegate(grid, '[data-action="view"]', 'click', (e, btn) => {
     router.navigate(`#/view/${btn.dataset.id}`);
   });
@@ -39,24 +34,22 @@ export function renderDocumentGrid(container, documents) {
 
   delegate(grid, '[data-action="favorite"]', 'click', async (e, btn) => {
     e.stopPropagation();
-    const id = btn.dataset.id;
+    const id    = btn.dataset.id;
     const isFav = btn.dataset.favorite === 'true';
     try {
       await api.updateDocument({ id, is_favorite: !isFav });
       btn.dataset.favorite = String(!isFav);
       btn.textContent = !isFav ? '⭐' : '☆';
-      // Also update the star in the header badge
-      const card = grid.querySelector(`.doc-card[data-id="${id}"]`);
+      const card     = grid.querySelector(`.doc-card[data-id="${id}"]`);
       const favBadge = card?.querySelector('.doc-card-fav');
       if (favBadge) favBadge.style.display = !isFav ? 'inline' : 'none';
     } catch (err) {
-      showToast('Errore durante il salvataggio', 'error');
+      showToast(t('card.saveError'), 'error');
     }
   });
 
-  // Card click → view
   delegate(grid, '.doc-card', 'click', (e, card) => {
-    if (e.target.closest('button')) return; // don't navigate on button clicks
+    if (e.target.closest('button')) return;
     router.navigate(`#/view/${card.dataset.id}`);
   });
 }

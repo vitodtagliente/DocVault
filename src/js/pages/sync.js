@@ -3,6 +3,7 @@
  */
 
 import * as api from '../api.js';
+import { t } from '../i18n.js';
 import { showToast } from '../components/toast.js';
 
 export async function render(container) {
@@ -22,90 +23,83 @@ export async function render(container) {
 
   container.innerHTML = `
     <div class="max-w-2xl mx-auto space-y-6">
-      <h1 class="text-xl font-bold text-[var(--color-text)]">Sync Google Drive</h1>
+      <h1 class="text-xl font-bold text-[var(--color-text)]">${t('sync.title')}</h1>
 
       ${!licenseStatus.is_pro ? `
         <div class="card border-amber-300 space-y-3">
           <div class="flex items-center gap-2">
             <span class="text-2xl">🔒</span>
             <div>
-              <p class="font-semibold text-sm text-[var(--color-text)]">Funzionalità Pro</p>
-              <p class="text-xs text-[var(--color-text-muted)]">
-                La sincronizzazione con Google Drive richiede una licenza Pro.
-              </p>
+              <p class="font-semibold text-sm text-[var(--color-text)]">${t('sync.proFeature')}</p>
+              <p class="text-xs text-[var(--color-text-muted)]">${t('sync.proRequired')}</p>
             </div>
           </div>
-          <a href="#/settings" class="btn-primary text-sm inline-flex">Attiva licenza Pro</a>
+          <a href="#/settings" class="btn-primary text-sm inline-flex">${t('sync.activatePro')}</a>
         </div>
       ` : status.is_authenticated ? `
         <div class="card space-y-4">
           <div class="flex items-center gap-3">
             <span class="text-3xl">☁️</span>
             <div>
-              <p class="font-semibold text-sm text-[var(--color-text)]">Connesso a Google Drive</p>
+              <p class="font-semibold text-sm text-[var(--color-text)]">${t('sync.connected')}</p>
               ${status.email ? `<p class="text-xs text-[var(--color-text-muted)]">${escHtml(status.email)}</p>` : ''}
-              ${status.last_sync ? `<p class="text-xs text-[var(--color-text-muted)]">Ultima sync: ${status.last_sync.slice(0,16).replace('T',' ')}</p>` : ''}
+              ${status.last_sync ? `<p class="text-xs text-[var(--color-text-muted)]">${t('sync.lastSync')}${status.last_sync.slice(0,16).replace('T',' ')}</p>` : ''}
             </div>
           </div>
           <div class="flex gap-2">
-            <button id="btn-sync" class="btn-primary">🔄 Sincronizza ora</button>
-            <button id="btn-logout" class="btn-secondary">Disconnetti</button>
+            <button id="btn-sync"   class="btn-primary">${t('sync.syncNow')}</button>
+            <button id="btn-logout" class="btn-secondary">${t('sync.disconnect')}</button>
           </div>
           <div id="sync-status" class="hidden text-sm"></div>
         </div>
       ` : `
         <div class="card space-y-4">
-          <p class="text-sm text-[var(--color-text-muted)]">
-            Connetti il tuo account Google per sincronizzare documenti tra dispositivi.
-          </p>
-          <button id="btn-login" class="btn-primary">🔗 Connetti Google Drive</button>
+          <p class="text-sm text-[var(--color-text-muted)]">${t('sync.connectDesc')}</p>
+          <button id="btn-login" class="btn-primary">${t('sync.connect')}</button>
         </div>
       `}
     </div>
   `;
 
   container.querySelector('#btn-login')?.addEventListener('click', async () => {
-    try {
-      await api.googleAuthStart();
-    } catch (err) {
-      showToast('Errore: ' + err, 'error');
-    }
+    try { await api.googleAuthStart(); }
+    catch (err) { showToast(t('sync.error') + err, 'error'); }
   });
 
   container.querySelector('#btn-logout')?.addEventListener('click', async () => {
     try {
       await api.googleAuthLogout();
-      showToast('Disconnesso da Google Drive', 'info');
+      showToast(t('sync.disconnected'), 'info');
       await render(container);
     } catch (err) {
-      showToast('Errore: ' + err, 'error');
+      showToast(t('sync.error') + err, 'error');
     }
   });
 
   container.querySelector('#btn-sync')?.addEventListener('click', async () => {
-    const btn = container.querySelector('#btn-sync');
+    const btn      = container.querySelector('#btn-sync');
     const statusEl = container.querySelector('#sync-status');
     btn.disabled = true;
-    btn.textContent = '🔄 Sincronizzazione…';
+    btn.textContent = t('sync.syncing');
     statusEl.classList.remove('hidden');
-    statusEl.textContent = 'In corso…';
+    statusEl.textContent = t('sync.inProgress');
     try {
       const report = await api.syncNow();
       statusEl.innerHTML = `
-        <p class="text-green-600">✅ Completata in ${report.duration_ms}ms</p>
+        <p class="text-green-600">✅ ${t('sync.doneMsg')} (${report.duration_ms}ms)</p>
         <p class="text-xs text-[var(--color-text-muted)]">
-          ↓ ${report.events_downloaded} eventi, ${report.files_downloaded} file
-          · ↑ ${report.events_uploaded} eventi, ${report.files_uploaded} file
-          · ${report.conflicts_resolved} conflitti risolti
+          ↓ ${report.events_downloaded} events, ${report.files_downloaded} files
+          · ↑ ${report.events_uploaded} events, ${report.files_uploaded} files
+          · ${report.conflicts_resolved} conflicts
         </p>
       `;
-      showToast('Sync completata!', 'success');
+      showToast(t('sync.doneMsg'), 'success');
     } catch (err) {
-      statusEl.innerHTML = `<p class="text-red-500">Errore: ${escHtml(String(err))}</p>`;
-      showToast('Errore sync: ' + err, 'error');
+      statusEl.innerHTML = `<p class="text-red-500">${t('sync.error')}${escHtml(String(err))}</p>`;
+      showToast(t('sync.syncError') + err, 'error');
     } finally {
       btn.disabled = false;
-      btn.textContent = '🔄 Sincronizza ora';
+      btn.textContent = t('sync.syncNow');
     }
   });
 }

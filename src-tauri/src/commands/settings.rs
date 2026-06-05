@@ -45,6 +45,13 @@ pub async fn validate_storage_path(path: String) -> Result<bool, String> {
     }
 }
 
+/// Returns true if the given path already contains a .docvault directory,
+/// meaning it was previously initialized as a DocVault storage folder.
+#[tauri::command]
+pub async fn check_vault_path(path: String) -> Result<bool, String> {
+    Ok(Path::new(&path).join(".docvault").exists())
+}
+
 #[tauri::command]
 pub async fn complete_setup(
     storage_path: String,

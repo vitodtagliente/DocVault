@@ -4,6 +4,7 @@
 
 import * as api from '../api.js';
 import store from '../store.js';
+import { t } from '../i18n.js';
 import { showToast } from '../components/toast.js';
 import { presetSelectorHtml } from '../components/preset-selector.js';
 import { customFieldHtml, collectCustomFields } from '../components/custom-field.js';
@@ -26,7 +27,7 @@ export async function render(container, id) {
     ]);
     store.setState({ selectedDocument: detail });
   } catch (err) {
-    container.innerHTML = `<p class="text-red-500 text-sm">Errore: ${err}</p>`;
+    container.innerHTML = `<p class="text-red-500 text-sm">${t('edit.error')}${err}</p>`;
     return;
   }
 
@@ -34,18 +35,18 @@ export async function render(container, id) {
 
   container.innerHTML = `
     <div class="max-w-2xl mx-auto">
-      <h1 class="text-xl font-bold mb-6 text-[var(--color-text)]">Modifica documento</h1>
+      <h1 class="text-xl font-bold mb-6 text-[var(--color-text)]">${t('edit.title')}</h1>
 
       <form id="edit-form" class="space-y-5">
         <!-- Category -->
         <div>
-          <label class="label">Categoria <span class="text-red-500">*</span></label>
+          <label class="label">${t('add.categoryLabel')} <span class="text-red-500">*</span></label>
           ${presetSelectorHtml(categories, doc.category_id)}
         </div>
 
         <!-- Custom fields -->
         <div id="custom-fields-section" class="space-y-3">
-          <h3 class="text-sm font-medium text-[var(--color-text)]">Campi specifici</h3>
+          <h3 class="text-sm font-medium text-[var(--color-text)]">${t('edit.specificFields')}</h3>
           <div id="custom-fields-container" class="space-y-3">
             ${detail.custom_fields.map(cf => customFieldHtml(
               { id: cf.field_id, field_label: cf.field_label, field_type: cf.field_type,
@@ -57,25 +58,25 @@ export async function render(container, id) {
 
         <!-- Title -->
         <div>
-          <label class="label" for="doc-title">Titolo <span class="text-red-500">*</span></label>
+          <label class="label" for="doc-title">${t('add.titleLabel')} <span class="text-red-500">*</span></label>
           <input type="text" id="doc-title" class="input" value="${escHtml(doc.title)}" required />
         </div>
 
         <!-- Dates -->
         <div class="grid grid-cols-2 gap-4">
           <div>
-            <label class="label" for="doc-date">Data documento</label>
+            <label class="label" for="doc-date">${t('add.documentDate')}</label>
             <input type="date" id="doc-date" class="input" value="${doc.document_date}" />
           </div>
           <div>
-            <label class="label" for="doc-expiry">Data scadenza</label>
+            <label class="label" for="doc-expiry">${t('add.expiryDate')}</label>
             <input type="date" id="doc-expiry" class="input" value="${doc.expiry_date || ''}" />
           </div>
         </div>
 
         <!-- Notes -->
         <div>
-          <label class="label" for="doc-notes">Note</label>
+          <label class="label" for="doc-notes">${t('add.notes')}</label>
           <textarea id="doc-notes" class="input h-20 resize-none">${escHtml(doc.notes)}</textarea>
         </div>
 
@@ -87,22 +88,20 @@ export async function render(container, id) {
 
         <!-- Actions -->
         <div class="flex gap-3 pt-2">
-          <button type="submit" class="btn-primary flex-1" id="submit-btn">💾 Salva modifiche</button>
-          <a href="#/view/${id}" class="btn-secondary">Annulla</a>
+          <button type="submit" class="btn-primary flex-1" id="submit-btn">${t('edit.save')}</button>
+          <a href="#/view/${id}" class="btn-secondary">${t('edit.cancel')}</a>
         </div>
       </form>
     </div>
   `;
 
-  // Tag input
   const tagInput = new TagInput(
     container.querySelector('#tag-input-container'),
     detail.tags.map(t => t.name),
     tags,
   );
 
-  // Category change → reload custom fields
-  const categorySelect = container.querySelector('#preset-category');
+  const categorySelect  = container.querySelector('#preset-category');
   const customContainer = container.querySelector('#custom-fields-container');
 
   categorySelect.addEventListener('change', async () => {
@@ -116,13 +115,12 @@ export async function render(container, id) {
     }
   });
 
-  // Submit
   container.querySelector('#edit-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const form = e.target;
     const submitBtn = form.querySelector('#submit-btn');
     submitBtn.disabled = true;
-    submitBtn.textContent = 'Salvataggio…';
+    submitBtn.textContent = t('edit.saving');
 
     try {
       await api.updateDocument({
@@ -135,12 +133,12 @@ export async function render(container, id) {
         tags: tagInput.getTags(),
         custom_fields: collectCustomFields(form),
       });
-      showToast('Documento aggiornato!', 'success');
+      showToast(t('edit.saved'), 'success');
       router.navigate(`#/view/${id}`);
     } catch (err) {
-      showToast('Errore: ' + err, 'error');
+      showToast(t('edit.error') + err, 'error');
       submitBtn.disabled = false;
-      submitBtn.textContent = '💾 Salva modifiche';
+      submitBtn.textContent = t('edit.save');
     }
   });
 }

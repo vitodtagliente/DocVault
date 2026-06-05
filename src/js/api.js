@@ -24,6 +24,7 @@ async function call(cmd, args) {
 export const getSettings     = ()             => call('get_settings');
 export const updateSetting   = (key, value)   => call('update_setting', { key, value });
 export const validateStoragePath = (path)     => call('validate_storage_path', { path });
+export const checkVaultPath  = (path)         => call('check_vault_path', { path });
 export const completeSetup   = (storagePath)  => call('complete_setup', { storagePath });
 
 // ─── Documents ───────────────────────────────────────────────────────────────

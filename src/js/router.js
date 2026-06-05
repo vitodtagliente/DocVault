@@ -60,6 +60,10 @@ const router = {
     beforeNavigateFn = null;
   },
 
+  reload() {
+    this._handle();
+  },
+
   async _handle() {
     const hash = window.location.hash || '#/';
 
