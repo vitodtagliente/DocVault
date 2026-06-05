@@ -5,6 +5,7 @@ pub mod utils;
 
 use std::sync::Mutex;
 use rusqlite::Connection;
+use tauri::Manager;
 
 /// Shared application state — the SQLite connection protected by a Mutex.
 pub struct AppState {

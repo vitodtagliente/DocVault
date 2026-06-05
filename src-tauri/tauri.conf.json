@@ -4,8 +4,7 @@
   "version": "1.0.0",
   "identifier": "com.docvault.app",
   "build": {
-    "frontendDist": "../src",
-    "devUrl": "http://localhost:1420"
+    "frontendDist": "../src"
   },
   "app": {
     "withGlobalTauri": true,

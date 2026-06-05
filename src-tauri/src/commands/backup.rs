@@ -22,7 +22,7 @@ pub async fn create_backup(
     let file = std::fs::File::create(out).map_err(|e| e.to_string())?;
     let mut zip = zip::ZipWriter::new(file);
 
-    let options = zip::write::FileOptions::default()
+    let options = zip::write::FileOptions::<zip::write::ExtendedFileOptions>::default()
         .compression_method(zip::CompressionMethod::Deflated)
         .unix_permissions(0o644);
 
