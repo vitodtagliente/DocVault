@@ -40,6 +40,9 @@ sudo apt install libwebkit2gtk-4.1-dev build-essential libssl-dev libgtk-3-dev \
 # 1. Install Rust
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 
+# On Windows
+winget install Rustlang.Rustup
+
 # 2. Install Tauri CLI
 cargo install tauri-cli --version "^2"
 

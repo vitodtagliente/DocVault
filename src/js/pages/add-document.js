@@ -15,7 +15,13 @@ import router from '../router.js';
 import { today } from '../utils/date.js';
 
 export async function render(container) {
-  const { categories, tags } = store.getState();
+  const { categories, tags, settings } = store.getState();
+
+  // Mandatory: documents folder must be configured before adding a document
+  if (!settings?.storage_path) {
+    await renderFolderSetup(container);
+    return;
+  }
 
   container.innerHTML = `
     <div class="max-w-2xl mx-auto">
@@ -218,6 +224,100 @@ export async function render(container) {
         showToast(t('add.error') + err, 'error');
         resetBtn();
       }
+    }
+  });
+}
+
+/**
+ * Renders a blocking folder-setup prompt inside the container.
+ * Called when no documents folder has been configured yet.
+ * Once the user saves a valid folder, re-renders the full add-document form.
+ */
+async function renderFolderSetup(container) {
+  container.innerHTML = `
+    <div class="min-h-full flex items-center justify-center p-6">
+      <div class="w-full max-w-md space-y-6">
+        <div class="text-center">
+          <div class="text-6xl mb-3">📁</div>
+          <h2 class="text-xl font-bold text-[var(--color-text)]">${t('add.setupFolderTitle')}</h2>
+          <p class="mt-2 text-sm text-[var(--color-text-muted)]">${t('add.setupFolderMsg')}</p>
+        </div>
+
+        <div class="card space-y-4">
+          <div>
+            <label class="label">${t('setup.folderLabel')}</label>
+            <div class="flex gap-2">
+              <input type="text" id="setup-folder-path" class="input flex-1" readonly
+                     placeholder="${t('setup.placeholder')}" />
+              <button id="setup-folder-browse" class="btn-secondary whitespace-nowrap">
+                ${t('setup.browse')}
+              </button>
+            </div>
+          </div>
+
+          <div id="setup-folder-status" class="hidden"></div>
+
+          <button id="setup-folder-confirm" class="btn-primary w-full" disabled>
+            ${t('add.setupFolderBtn')}
+          </button>
+
+          <a href="#/" class="block text-center text-sm text-[var(--color-text-muted)] hover:underline">
+            ${t('add.cancel')}
+          </a>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const pathInput  = container.querySelector('#setup-folder-path');
+  const browseBtn  = container.querySelector('#setup-folder-browse');
+  const confirmBtn = container.querySelector('#setup-folder-confirm');
+  const statusEl   = container.querySelector('#setup-folder-status');
+
+  browseBtn.addEventListener('click', async () => {
+    try {
+      const path = await api.openFolderDialog();
+      if (!path) return;
+      pathInput.value = path;
+
+      const valid = await api.validateStoragePath(path);
+      if (!valid) {
+        statusEl.innerHTML = `<p class="text-sm text-red-500">${t('setup.invalidPath')}</p>`;
+        statusEl.classList.remove('hidden');
+        confirmBtn.disabled = true;
+        return;
+      }
+
+      let isExistingVault = false;
+      try { isExistingVault = await api.checkVaultPath(path); } catch { /* ignore */ }
+
+      statusEl.innerHTML = isExistingVault
+        ? `<p class="text-sm text-[var(--color-primary)]">${t('setup.existingVault')}</p>`
+        : `<p class="text-sm text-green-600">${t('setup.validPath')} — ${t('setup.newVault')}</p>`;
+      statusEl.classList.remove('hidden');
+      confirmBtn.disabled = false;
+    } catch (err) {
+      statusEl.innerHTML = `<p class="text-sm text-red-500">${err}</p>`;
+      statusEl.classList.remove('hidden');
+    }
+  });
+
+  confirmBtn.addEventListener('click', async () => {
+    const path = pathInput.value.trim();
+    if (!path) return;
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = t('setup.configuring');
+    try {
+      await api.completeSetup(path);
+      store.setState({
+        settings: { ...store.getState().settings, storage_path: path, setup_complete: true },
+      });
+      showToast(t('setup.success'), 'success');
+      await render(container);
+    } catch (err) {
+      showToast(t('setup.error') + err, 'error');
+      confirmBtn.disabled = false;
+      confirmBtn.textContent = t('add.setupFolderBtn');
     }
   });
 }

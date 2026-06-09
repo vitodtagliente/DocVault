@@ -73,22 +73,24 @@ export async function render(container) {
       <div class="card space-y-4">
         <h2 class="text-sm font-semibold text-[var(--color-text)]">${t('settings.license')}</h2>
         ${licenseStatus.is_pro ? `
-          <div class="flex items-center gap-2">
-            <span class="badge bg-green-100 text-green-700">${t('settings.proActive')}</span>
-            ${licenseStatus.activated_at ? `<span class="text-xs text-[var(--color-text-muted)]">${t('settings.activatedOn')} ${licenseStatus.activated_at.slice(0,10)}</span>` : ''}
-          </div>
-        ` : `
-          <div class="space-y-3">
-            <p class="text-sm text-[var(--color-text-muted)]">
-              ${t('settings.activateProDesc')}
-            </p>
-            <div class="flex gap-2">
-              <input type="text" id="license-key" class="input text-sm font-mono"
-                     placeholder="XXXXX-XXXXX-XXXXX-XXXXX-XXXXX" maxlength="29" />
-              <button id="activate-license" class="btn-primary whitespace-nowrap">${t('settings.activate')}</button>
+          <div class="flex items-center gap-3 p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+            <span class="text-2xl" aria-hidden="true">❤️</span>
+            <div>
+              <p class="font-semibold text-sm text-green-700 dark:text-green-400">${t('settings.proActive')}</p>
+              ${licenseStatus.activated_at ? `<span class="text-xs text-[var(--color-text-muted)]">${t('settings.activatedOn')} ${licenseStatus.activated_at.slice(0,10)}</span>` : ''}
             </div>
           </div>
-        `}
+        ` : ''}
+        <div class="space-y-3">
+          <p class="text-sm text-[var(--color-text-muted)]">
+            ${t('settings.activateProDesc')}
+          </p>
+          <div class="flex gap-2">
+            <input type="text" id="license-key" class="input text-sm font-mono"
+                   placeholder="XXXXX-XXXXX-XXXXX-XXXXX-XXXXX" maxlength="29" />
+            <button id="activate-license" class="btn-primary whitespace-nowrap">${t('settings.activate')}</button>
+          </div>
+        </div>
       </div>
 
       <!-- About -->

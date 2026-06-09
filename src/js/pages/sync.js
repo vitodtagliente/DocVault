@@ -15,32 +15,11 @@ export async function render(container) {
     status = { is_authenticated: false };
   }
 
-  let licenseStatus;
-  try {
-    licenseStatus = await api.getLicenseStatus();
-  } catch {
-    licenseStatus = { is_pro: false };
-  }
-
   container.innerHTML = `
     <div class="max-w-2xl mx-auto space-y-6">
       <h1 class="text-xl font-bold text-[var(--color-text)]">${t('sync.title')}</h1>
 
-      ${!licenseStatus.is_pro ? `
-        <div class="card border-amber-300 space-y-3">
-          <div class="flex items-center gap-2">
-            <span style="width:2rem;height:2rem;border-radius:var(--radius-lg);display:flex;align-items:center;
-                         justify-content:center;background:#f59e0b;color:white">
-              ${icon('lock', 'w-4 h-4')}
-            </span>
-            <div>
-              <p class="font-semibold text-sm text-[var(--color-text)]">${t('sync.proFeature')}</p>
-              <p class="text-xs text-[var(--color-text-muted)]">${t('sync.proRequired')}</p>
-            </div>
-          </div>
-          <a href="#/settings" class="btn-primary text-sm inline-flex">${t('sync.activatePro')}</a>
-        </div>
-      ` : status.is_authenticated ? `
+      ${status.is_authenticated ? `
         <div class="card space-y-4">
           <div class="flex items-center gap-3">
             <span style="width:2.5rem;height:2.5rem;border-radius:var(--radius-lg);display:flex;align-items:center;
