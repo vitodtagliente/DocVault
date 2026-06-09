@@ -68,15 +68,21 @@ struct OAuthTokenResponse {
     token_type: String,
 }
 
-// ─── Build-time config ─────────────────────────────────────────────────────────
+// ─── Build-time config ────────────────────────────────────────────────────────
+
+// Replace this with your Google OAuth 2.0 Client ID.
+// See README.md → "Google Drive Sync Setup" for instructions.
+// The client ID is not a secret in a PKCE desktop flow — it is safe to commit.
+const GOOGLE_CLIENT_ID_VALUE: &str = "YOUR_CLIENT_ID.apps.googleusercontent.com";
 
 fn google_client_id() -> Result<&'static str, String> {
-    let id = option_env!("GOOGLE_CLIENT_ID").unwrap_or("");
-    if id.is_empty() {
+    // Also allow overriding at compile time via environment variable
+    let id = option_env!("GOOGLE_CLIENT_ID").unwrap_or(GOOGLE_CLIENT_ID_VALUE);
+    if id.is_empty() || id == "YOUR_CLIENT_ID.apps.googleusercontent.com" {
         Err(
-            "Google Drive sync is not configured for this build. \
-             Set GOOGLE_CLIENT_ID at compile time. \
-             See docs/USER_GUIDE.md for setup instructions."
+            "Google Drive sync is not configured. \
+             Edit GOOGLE_CLIENT_ID_VALUE in src-tauri/src/commands/sync.rs \
+             and rebuild. See README.md for instructions."
                 .to_string(),
         )
     } else {

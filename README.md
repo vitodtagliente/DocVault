@@ -112,53 +112,34 @@ npm run ios       # iOS IPA via cargo tauri ios build
 
 ## Google Drive Sync Setup
 
-Drive sync requires a Google OAuth 2.0 **Client ID** compiled into the binary.
+Drive sync requires a Google OAuth 2.0 **Client ID**. The client ID is **not a secret** in a PKCE desktop flow — it is safe to commit to the repo.
 
 ### 1. Create a Google Cloud project
 
 1. Go to [https://console.cloud.google.com/](https://console.cloud.google.com/) and create a new project (e.g. *DocVault*).
-2. In the left menu go to **APIs & Services → Library**, search for **Google Drive API** and click **Enable**.
+2. Go to **APIs & Services → Library**, search for **Google Drive API** and click **Enable**.
 
 ### 2. Create OAuth credentials
 
-1. Go to **APIs & Services → Credentials** → **Create Credentials → OAuth client ID**.
+1. Go to **APIs & Services → Credentials → Create Credentials → OAuth client ID**.
 2. If prompted, configure the **OAuth consent screen** first:
-   - User type: **External** (or Internal if you have a Workspace org)
-   - App name: `DocVault` · Support email: your address
-   - Scopes: add `https://www.googleapis.com/auth/drive.file`
-   - Test users: add your own Google account
-3. Back in **Create OAuth client ID**:
-   - Application type: **Desktop app**
-   - Name: `DocVault Desktop`
-4. Click **Create** — copy the **Client ID** (looks like `123456789-xxxx.apps.googleusercontent.com`).
+   - User type: **External**
+   - App name: `DocVault` · Scopes: `https://www.googleapis.com/auth/drive.file`
+   - Add your Google account as a test user
+3. Application type: **Desktop app** → click **Create**.
+4. Copy the **Client ID** (e.g. `123456789-xxxx.apps.googleusercontent.com`).
 
-### 3. Build with the Client ID
+### 3. Set the Client ID
 
-```powershell
-# Windows (PowerShell)
-$Env:GOOGLE_CLIENT_ID="YOUR_CLIENT_ID.apps.googleusercontent.com"
-npm run build
+Open `src-tauri/src/commands/sync.rs` and replace the placeholder on this one line:
+
+```rust
+const GOOGLE_CLIENT_ID_VALUE: &str = "YOUR_CLIENT_ID.apps.googleusercontent.com";
 ```
 
-```bash
-# macOS / Linux
-GOOGLE_CLIENT_ID="YOUR_CLIENT_ID.apps.googleusercontent.com" npm run build
-```
+Then rebuild (`npm run build` or `npm run dev`). That's it — no environment variables needed.
 
-For development:
-
-```powershell
-# Windows
-$Env:GOOGLE_CLIENT_ID="YOUR_CLIENT_ID.apps.googleusercontent.com"
-npm run dev
-```
-
-```bash
-# macOS / Linux
-GOOGLE_CLIENT_ID="YOUR_CLIENT_ID.apps.googleusercontent.com" npm run dev
-```
-
-> Without `GOOGLE_CLIENT_ID` the app builds and runs normally — the Sync page shows a configuration error message instead of the login button.
+> Contributors who don't set a client ID can still build and run the app; the Sync page will show a configuration notice instead of the login button.
 
 ---
 
