@@ -44,8 +44,19 @@ Create a single ZIP archive containing your entire vault database and all files.
 ### CSV Export
 Export your full document catalog (or a filtered view) as a CSV file for use in Excel, Google Sheets, or any other tool.
 
-### Google Drive Sync *(coming soon)*
-Connect your Google account to sync your vault across multiple devices. This feature is currently in development.
+### Google Drive Sync
+Sync your entire vault to Google Drive so your documents are available on every device.
+
+> **Note for developers / self-builders:** Google Drive sync requires a Google OAuth 2.0 Client ID baked in at compile time. Pre-built releases ship with this already configured. If you are building from source, follow the setup steps in [README.md](../README.md#google-drive-sync-setup).
+
+#### How it works
+1. Open the **Sync** page from the sidebar.
+2. Click **Connect Google Drive** — a browser window opens to the Google sign-in page.
+3. Sign in and grant DocVault permission to manage files in its own Drive folder (`DocVault/`).
+4. Once connected, click **Sync Now** to upload new or changed documents.
+5. To disconnect, click **Disconnect**.
+
+DocVault only reads and writes files inside the `DocVault/` folder it creates in your Drive. It never accesses any other Drive files.
 
 ### Dark Mode
 Supports light, dark, and system-preference modes. Switch at any time in Settings.

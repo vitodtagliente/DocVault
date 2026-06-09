@@ -110,7 +110,57 @@ npm run ios       # iOS IPA via cargo tauri ios build
 
 ---
 
-## License Key Generator
+## Google Drive Sync Setup
+
+Drive sync requires a Google OAuth 2.0 **Client ID** compiled into the binary.
+
+### 1. Create a Google Cloud project
+
+1. Go to [https://console.cloud.google.com/](https://console.cloud.google.com/) and create a new project (e.g. *DocVault*).
+2. In the left menu go to **APIs & Services → Library**, search for **Google Drive API** and click **Enable**.
+
+### 2. Create OAuth credentials
+
+1. Go to **APIs & Services → Credentials** → **Create Credentials → OAuth client ID**.
+2. If prompted, configure the **OAuth consent screen** first:
+   - User type: **External** (or Internal if you have a Workspace org)
+   - App name: `DocVault` · Support email: your address
+   - Scopes: add `https://www.googleapis.com/auth/drive.file`
+   - Test users: add your own Google account
+3. Back in **Create OAuth client ID**:
+   - Application type: **Desktop app**
+   - Name: `DocVault Desktop`
+4. Click **Create** — copy the **Client ID** (looks like `123456789-xxxx.apps.googleusercontent.com`).
+
+### 3. Build with the Client ID
+
+```powershell
+# Windows (PowerShell)
+$Env:GOOGLE_CLIENT_ID="YOUR_CLIENT_ID.apps.googleusercontent.com"
+npm run build
+```
+
+```bash
+# macOS / Linux
+GOOGLE_CLIENT_ID="YOUR_CLIENT_ID.apps.googleusercontent.com" npm run build
+```
+
+For development:
+
+```powershell
+# Windows
+$Env:GOOGLE_CLIENT_ID="YOUR_CLIENT_ID.apps.googleusercontent.com"
+npm run dev
+```
+
+```bash
+# macOS / Linux
+GOOGLE_CLIENT_ID="YOUR_CLIENT_ID.apps.googleusercontent.com" npm run dev
+```
+
+> Without `GOOGLE_CLIENT_ID` the app builds and runs normally — the Sync page shows a configuration error message instead of the login button.
+
+---
 
 ```bash
 node keygen/keygen.js          # generate 1 key
