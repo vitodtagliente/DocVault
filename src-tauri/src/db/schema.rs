@@ -2,30 +2,34 @@ use rusqlite::{Connection, Result};
 use std::path::Path;
 
 /// Opens (or creates) the SQLite database at the given path,
-/// runs all pending migrations and seeds system data.
+/// applies a pending deferred-restore if one exists, then runs all migrations.
 pub fn open_and_migrate(db_path: &Path) -> Result<Connection> {
+    // If a restore file is waiting, swap it in before opening
+    let restore_path = db_path.with_extension("db.restore");
+    if restore_path.exists() {
+        // Best-effort rename; if it fails we proceed with the existing DB
+        let _ = std::fs::rename(&restore_path, db_path);
+    }
+
     let conn = Connection::open(db_path)?;
-
-    // Enable WAL mode for better concurrent performance
     conn.execute_batch("PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;")?;
-
     run_migrations(&conn)?;
     Ok(conn)
 }
 
 fn run_migrations(conn: &Connection) -> Result<()> {
-    // Create migration tracking table
     conn.execute_batch(
         "CREATE TABLE IF NOT EXISTS _migrations (
-            id      INTEGER PRIMARY KEY AUTOINCREMENT,
-            name    TEXT NOT NULL UNIQUE,
+            id         INTEGER PRIMARY KEY AUTOINCREMENT,
+            name       TEXT NOT NULL UNIQUE,
             applied_at TEXT NOT NULL DEFAULT (datetime('now'))
         );"
     )?;
 
     let migrations: &[(&str, &str)] = &[
-        ("001_initial", include_str!("../../migrations/001_initial.sql")),
-        ("002_add_ocr_text", include_str!("../../migrations/002_add_ocr_text.sql")),
+        ("001_initial",        include_str!("../../migrations/001_initial.sql")),
+        ("002_add_ocr_text",   include_str!("../../migrations/002_add_ocr_text.sql")),
+        ("003_fts5_and_drive", include_str!("../../migrations/003_fts5_and_drive.sql")),
     ];
 
     for (name, sql) in migrations {
@@ -48,3 +52,4 @@ fn run_migrations(conn: &Connection) -> Result<()> {
 
     Ok(())
 }
+

@@ -143,24 +143,41 @@ pub async fn search_documents(
         }
     }
 
-    // Text search via LIKE — case-insensitive partial match on title and notes
+    // Text search — FTS5 with prefix matching, fallback to LIKE if query is empty after sanitization
+    let mut fts_param: Option<String> = None;
     if let Some(ref q) = filters.query {
         let q_trim = q.trim();
         if !q_trim.is_empty() {
-            let like_q = format!("%{}%", q_trim);
-            conditions.push(format!("(d.title LIKE ?{0} OR d.notes LIKE ?{0})", param_idx));
-            params.push(Box::new(like_q));
-            param_idx += 1;
+            let fts_q = build_fts5_query(q_trim);
+            if !fts_q.is_empty() {
+                // Use FTS5 rowid subquery — integrates cleanly with the dynamic WHERE builder
+                conditions.push(format!(
+                    "d.rowid IN (SELECT rowid FROM documents_fts WHERE documents_fts MATCH ?{})",
+                    param_idx
+                ));
+                params.push(Box::new(fts_q.clone()));
+                fts_param = Some(fts_q);
+                param_idx += 1;
+            } else {
+                // Fallback: LIKE on title, notes, ocr_text
+                let like_q = format!("%{}%", q_trim);
+                conditions.push(format!(
+                    "(d.title LIKE ?{0} OR d.notes LIKE ?{0} OR d.ocr_text LIKE ?{0})",
+                    param_idx
+                ));
+                params.push(Box::new(like_q));
+                param_idx += 1;
+            }
         }
     }
+    let _ = fts_param; // used above
 
     let where_clause = conditions.join(" AND ");
-    let fts_join = String::new();
     let _ = param_idx;
 
     let count_sql = format!(
-        "SELECT COUNT(*) FROM documents d {} WHERE {}",
-        fts_join, where_clause
+        "SELECT COUNT(*) FROM documents d WHERE {}",
+        where_clause
     );
 
     let main_sql = format!(
@@ -169,11 +186,10 @@ pub async fn search_documents(
                 d.document_date, d.expiry_date, d.is_favorite, d.created_at
          FROM documents d
          JOIN categories c ON d.category_id = c.id
-         {}
          WHERE {}
          ORDER BY {}
          LIMIT {} OFFSET {}",
-        fts_join, where_clause, order_clause, page_size, offset
+        where_clause, order_clause, page_size, offset
     );
 
     // Execute count
@@ -337,3 +353,22 @@ pub async fn get_stats(state: State<'_, AppState>) -> Result<DashboardStats, Str
         by_month,
     })
 }
+
+/// Build an FTS5 query that does prefix-matching on every whitespace-separated token.
+/// E.g. "elec 2024" → `elec* 2024*` (implicit AND).
+/// Returns an empty string if no valid tokens found (caller falls back to LIKE).
+fn build_fts5_query(q: &str) -> String {
+    let tokens: Vec<String> = q
+        .split_whitespace()
+        .filter_map(|word| {
+            // Keep alphanumeric, hyphens, apostrophes; strip FTS5 operators
+            let safe: String = word
+                .chars()
+                .filter(|c| c.is_alphanumeric() || *c == '-' || *c == '\'')
+                .collect();
+            if safe.is_empty() { None } else { Some(format!("{}*", safe)) }
+        })
+        .collect();
+    tokens.join(" ")
+}
+

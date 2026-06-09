@@ -20,6 +20,7 @@ pub async fn run_ocr(
         .map_err(|e| e.to_string())?
         .ok_or("Storage path not configured")?;
     let full_path = Path::new(&storage_path).join(&doc.storage_path);
+    drop(conn); // release lock before the subprocess call
 
     let lang_str = if languages.is_empty() {
         "ita+eng".to_string()
@@ -27,28 +28,11 @@ pub async fn run_ocr(
         languages.join("+")
     };
 
-    // Write to temp file for stdout output
-    let tmp_output = std::env::temp_dir().join(format!("docvault_ocr_{}", document_id));
-    let output = std::process::Command::new("tesseract")
-        .arg(full_path.to_string_lossy().as_ref())
-        .arg(tmp_output.to_string_lossy().as_ref())
-        .arg("-l")
-        .arg(&lang_str)
-        .output()
-        .map_err(|e| format!("Tesseract not found or failed: {}", e))?;
-
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(format!("OCR failed: {}", stderr));
-    }
-
-    // Tesseract writes to {output}.txt
-    let txt_path = tmp_output.with_extension("txt");
-    let ocr_text = std::fs::read_to_string(&txt_path)
-        .map_err(|e| e.to_string())?;
-    std::fs::remove_file(&txt_path).ok();
+    let ocr_text = run_tesseract_sync(&full_path, &lang_str)
+        .ok_or_else(|| "Tesseract not found or OCR failed".to_string())?;
 
     // Save OCR text to database
+    let conn = state.db.lock().map_err(|e| e.to_string())?;
     conn.execute(
         "UPDATE documents SET ocr_text = ?2, updated_at = datetime('now') WHERE id = ?1",
         rusqlite::params![document_id, ocr_text],
@@ -56,3 +40,28 @@ pub async fn run_ocr(
 
     Ok(ocr_text)
 }
+
+/// Run Tesseract CLI on `file_path` with the given language string (e.g. "ita+eng").
+/// Returns the extracted text, or `None` if Tesseract is not installed or fails.
+pub fn run_tesseract_sync(file_path: &Path, langs: &str) -> Option<String> {
+    let tmp = std::env::temp_dir()
+        .join(format!("docvault_ocr_{}", uuid::Uuid::new_v4()));
+
+    let output = std::process::Command::new("tesseract")
+        .arg(file_path.to_string_lossy().as_ref())
+        .arg(tmp.to_string_lossy().as_ref())
+        .arg("-l")
+        .arg(langs)
+        .output()
+        .ok()?;
+
+    if !output.status.success() {
+        return None;
+    }
+
+    let txt_path = tmp.with_extension("txt");
+    let text = std::fs::read_to_string(&txt_path).ok()?;
+    std::fs::remove_file(&txt_path).ok();
+    Some(text)
+}
+

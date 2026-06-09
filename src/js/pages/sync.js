@@ -44,14 +44,31 @@ export async function render(container) {
           <button id="btn-login" class="btn-primary" style="display:flex;align-items:center;gap:.5rem">
             ${icon('link', 'w-4 h-4')} ${t('sync.connect')}
           </button>
+          <div id="auth-status" class="hidden"></div>
         </div>
       `}
     </div>
   `;
 
   container.querySelector('#btn-login')?.addEventListener('click', async () => {
-    try { await api.googleAuthStart(); }
-    catch (err) { showToast(t('sync.error') + err, 'error'); }
+    const btn = container.querySelector('#btn-login');
+    const statusEl = container.querySelector('#auth-status');
+
+    btn.disabled = true;
+    btn.innerHTML = `<div class="spinner" style="width:.9rem;height:.9rem;flex-shrink:0"></div> ${t('sync.authenticating')}`;
+    statusEl.innerHTML = `<p class="text-xs text-[var(--color-text-muted)]">${t('sync.authenticatingHint')}</p>`;
+    statusEl.classList.remove('hidden');
+
+    try {
+      await api.googleAuthStart();
+      showToast(t('sync.authSuccess'), 'success');
+      await render(container);
+    } catch (err) {
+      btn.disabled = false;
+      btn.innerHTML = `${icon('link', 'w-4 h-4')} ${t('sync.connect')}`;
+      statusEl.innerHTML = `<p class="text-sm text-red-500">${escHtml(String(err))}</p>`;
+      showToast(t('sync.error') + err, 'error');
+    }
   });
 
   container.querySelector('#btn-logout')?.addEventListener('click', async () => {
@@ -73,13 +90,13 @@ export async function render(container) {
     statusEl.textContent = t('sync.inProgress');
     try {
       const report = await api.syncNow();
+      const hasErrors = report.errors && report.errors.length > 0;
       statusEl.innerHTML = `
         <p style="color:#16a34a;display:flex;align-items:center;gap:.375rem">${icon('checkCircle', 'w-4 h-4')} ${t('sync.doneMsg')} (${report.duration_ms}ms)</p>
         <p class="text-xs text-[var(--color-text-muted)]">
-          ↓ ${report.events_downloaded} events, ${report.files_downloaded} files
-          · ↑ ${report.events_uploaded} events, ${report.files_uploaded} files
-          · ${report.conflicts_resolved} conflicts
+          ↑ ${report.files_uploaded} files uploaded
         </p>
+        ${hasErrors ? `<p class="text-xs text-amber-600 mt-1">${report.errors.length} error(s): ${escHtml(report.errors[0])}${report.errors.length > 1 ? ` (+${report.errors.length - 1} more)` : ''}</p>` : ''}
       `;
       showToast(t('sync.doneMsg'), 'success');
     } catch (err) {
@@ -95,3 +112,4 @@ export async function render(container) {
 function escHtml(str) {
   return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+

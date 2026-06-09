@@ -6,6 +6,7 @@ import * as api from '../api.js';
 import { t } from '../i18n.js';
 import { showToast } from '../components/toast.js';
 import router from '../router.js';
+import store from '../store.js';
 
 export async function render(container) {
   container.innerHTML = `
@@ -94,6 +95,9 @@ export async function render(container) {
 
     try {
       await api.completeSetup(path);
+      // Refresh settings in store so the router guard sees setup_complete + storage_path
+      const fresh = await api.getSettings();
+      store.setState({ settings: fresh });
       showToast(t('setup.success'), 'success');
       router.navigate('#/');
     } catch (err) {

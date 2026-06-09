@@ -49,8 +49,8 @@ async function init() {
       router.reload();
     });
 
-    // If setup not complete, go to setup wizard
-    if (!settings.setup_complete) {
+    // If setup not complete OR no storage path configured, go to setup wizard
+    if (!settings.setup_complete || !settings.storage_path) {
       router.init();
       router.navigate('#/setup');
       return;

@@ -113,9 +113,29 @@ pub async fn create_document(
         }))
         .map_err(|e| e.to_string())?;
 
-    queries::get_document_by_id(&conn, &id)
+    let doc = queries::get_document_by_id(&conn, &id)
         .map_err(|e| e.to_string())?
-        .ok_or_else(|| "Document not found after insert".to_string())
+        .ok_or_else(|| "Document not found after insert".to_string())?;
+
+    // Run OCR synchronously if requested — release DB lock first so OCR subprocess
+    // doesn't block other operations, then re-acquire to write the result.
+    let run_ocr = payload.run_ocr;
+    let doc_id_for_ocr = id.clone();
+    let full_path_for_ocr = Path::new(&storage_path_str).join(&rel_path);
+    drop(conn);
+
+    if run_ocr {
+        if let Some(ocr_text) = crate::commands::ocr::run_tesseract_sync(&full_path_for_ocr, "ita+eng") {
+            if let Ok(conn) = state.db.lock() {
+                let _ = conn.execute(
+                    "UPDATE documents SET ocr_text = ?2, updated_at = datetime('now') WHERE id = ?1",
+                    rusqlite::params![doc_id_for_ocr, ocr_text],
+                );
+            }
+        }
+    }
+
+    Ok(doc)
 }
 
 #[tauri::command]

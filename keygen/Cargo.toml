@@ -1,9 +1,0 @@
-[package]
-name = "docvault-keygen"
-version = "1.0.0"
-edition = "2021"
-description = "License key generator for DocVault"
-
-[dependencies]
-sha2 = "0.10"
-rand = "0.8"

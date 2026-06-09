@@ -1,0 +1,17 @@
+{
+  "name": "docvault-keygen",
+  "version": "1.0.0",
+  "description": "License key generator for DocVault",
+  "main": "keygen.js",
+  "bin": {
+    "keygen": "./keygen.js"
+  },
+  "scripts": {
+    "start": "node keygen.js",
+    "gen": "node keygen.js"
+  },
+  "engines": {
+    "node": ">=14.10.0"
+  },
+  "license": "MIT"
+}

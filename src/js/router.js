@@ -84,7 +84,25 @@ const router = {
       return;
     }
 
+    // Guard: redirect to setup if storage path is not configured yet
+    if (matched.page !== 'setup') {
+      const settings = store.getState().settings;
+      if (!settings?.setup_complete || !settings?.storage_path) {
+        window.location.hash = '#/setup';
+        return;
+      }
+    }
+
     store.setState({ currentPage: matched.page });
+
+    // Show/hide shell elements — setup page gets a blank canvas
+    const isSetup = matched.page === 'setup';
+    const sidebar   = document.getElementById('sidebar');
+    const header    = document.getElementById('header');
+    const bottomNav = document.getElementById('bottom-nav');
+    if (sidebar)   sidebar.style.display   = isSetup ? 'none' : '';
+    if (header)    header.style.display    = isSetup ? 'none' : '';
+    if (bottomNav) bottomNav.style.display = isSetup ? 'none' : '';
 
     // Cleanup previous page
     if (currentCleanup) {
