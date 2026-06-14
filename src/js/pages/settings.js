@@ -27,7 +27,7 @@ export async function render(container) {
   }
 
   container.innerHTML = `
-    <div class="max-w-2xl mx-auto space-y-6">
+    <div class="max-w-4xl mx-auto space-y-6">
       <h1 class="text-xl font-bold text-[var(--color-text)]">${t('settings.title')}</h1>
 
       <!-- Appearance -->
@@ -93,12 +93,6 @@ export async function render(container) {
         </div>
       </div>
 
-      <!-- About -->
-      <div class="card">
-        <h2 class="text-sm font-semibold text-[var(--color-text)] mb-2">${t('settings.about')}</h2>
-        <p class="text-xs text-[var(--color-text-muted)]">${appConfig.name} v${appConfig.version} · ${appConfig.tech}</p>
-        ${appConfig.tagline ? `<p class="text-xs text-[var(--color-text-muted)] mt-0.5 italic">${escHtml(appConfig.tagline)}</p>` : ''}
-      </div>
     </div>
   `;
 

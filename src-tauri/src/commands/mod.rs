@@ -7,5 +7,4 @@ pub mod settings;
 pub mod ocr;
 pub mod export;
 pub mod backup;
-pub mod sync;
 pub mod license;

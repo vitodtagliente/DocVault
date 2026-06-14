@@ -10,7 +10,7 @@ import { confirm } from '../components/modal.js';
 
 export async function render(container) {
   container.innerHTML = `
-    <div class="max-w-2xl mx-auto space-y-6">
+    <div class="max-w-4xl mx-auto space-y-6">
       <h1 class="text-xl font-bold text-[var(--color-text)]">${t('backup.title')}</h1>
 
       <!-- Backup -->

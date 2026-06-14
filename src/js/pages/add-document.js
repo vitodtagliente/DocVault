@@ -24,7 +24,7 @@ export async function render(container) {
   }
 
   container.innerHTML = `
-    <div class="max-w-2xl mx-auto">
+    <div class="max-w-3xl mx-auto">
       <h1 class="text-xl font-bold mb-6 text-[var(--color-text)]">${t('add.title')}</h1>
 
       <form id="add-form" class="space-y-5">

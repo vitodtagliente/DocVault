@@ -55,6 +55,10 @@ export function renderSidebar(el) {
           <span class="w-4 h-4 flex-shrink-0 opacity-70">${icon('cloud', 'w-4 h-4')}</span>
           <span>${t('nav.sync')}</span>
         </a>
+        <button id="sidebar-about-btn" class="nav-link w-full text-left transition-colors">
+          <span class="w-4 h-4 flex-shrink-0 opacity-70">${icon('info', 'w-4 h-4')}</span>
+          <span>${t('nav.about')}</span>
+        </button>
       </nav>
       <div class="px-4 py-3 border-t border-[var(--color-border)]">
         <a href="#/add" class="btn-primary w-full justify-center gap-2 transition-all hover:shadow-md">
@@ -65,10 +69,17 @@ export function renderSidebar(el) {
     `;
   };
 
+  const attachAbout = () => {
+    el.querySelector('#sidebar-about-btn')?.addEventListener('click', () => {
+      window.dispatchEvent(new CustomEvent('show-about'));
+    });
+  };
+
   render();
-  store.subscribe('currentPage', render);
-  store.subscribe('lang', render);
-  store.subscribe('expiringCount', render);
+  attachAbout();
+  store.subscribe('currentPage', () => { render(); attachAbout(); });
+  store.subscribe('lang', () => { render(); attachAbout(); });
+  store.subscribe('expiringCount', () => { render(); attachAbout(); });
 }
 
 function pageFromHash(hash) {

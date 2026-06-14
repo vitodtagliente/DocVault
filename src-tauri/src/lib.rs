@@ -5,7 +5,10 @@ pub mod utils;
 
 use std::sync::Mutex;
 use rusqlite::Connection;
-use tauri::Manager;
+use tauri::{Emitter, Manager};
+use tauri::menu::{Menu, MenuItem, PredefinedMenuItem, Submenu};
+use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
+use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 
 /// Shared application state — the SQLite connection protected by a Mutex.
 pub struct AppState {
@@ -23,6 +26,21 @@ pub fn run() {
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(
+            tauri_plugin_global_shortcut::Builder::new()
+                .with_handler(|app, shortcut, event| {
+                    if event.state() == ShortcutState::Pressed
+                        && shortcut.matches(Modifiers::SHIFT | Modifiers::ALT, Code::KeyD)
+                    {
+                        if let Some(win) = app.get_webview_window("main") {
+                            let _ = win.show();
+                            let _ = win.set_focus();
+                            let _ = win.emit("focus-search", ());
+                        }
+                    }
+                })
+                .build(),
+        )
         .setup(|app| {
             let app_dir = app.path().app_data_dir()
                 .expect("Failed to resolve app data dir");
@@ -33,7 +51,137 @@ pub fn run() {
                 .expect("Failed to open/migrate database");
 
             app.manage(AppState { db: Mutex::new(conn) });
+
+            // ── Global shortcut: Shift+Alt+D ─────────────────────────────
+            app.global_shortcut()
+                .register(Shortcut::new(
+                    Some(Modifiers::SHIFT | Modifiers::ALT),
+                    Code::KeyD,
+                ))
+                .expect("Failed to register global shortcut");
+
+            // ── Native menu bar ──────────────────────────────────────────
+            let file_menu = {
+                let add = MenuItem::with_id(app, "add_document", "&Add Document", true, Some("CmdOrCtrl+N"))?;
+                let settings = MenuItem::with_id(app, "settings", "&Settings", true, Some("CmdOrCtrl+Comma"))?;
+                let hide = MenuItem::with_id(app, "hide", "&Hide DocVault", true, None::<&str>)?;
+                let quit = MenuItem::with_id(app, "quit", "&Quit DocVault", true, Some("CmdOrCtrl+Q"))?;
+                let sep1 = PredefinedMenuItem::separator(app)?;
+                let sep2 = PredefinedMenuItem::separator(app)?;
+                let sep3 = PredefinedMenuItem::separator(app)?;
+                Submenu::with_items(app, "&File", true, &[&add, &sep1, &settings, &sep2, &hide, &sep3, &quit])?
+            };
+
+            let edit_menu = {
+                let undo  = PredefinedMenuItem::undo(app, None)?;
+                let redo  = PredefinedMenuItem::redo(app, None)?;
+                let sep1  = PredefinedMenuItem::separator(app)?;
+                let cut   = PredefinedMenuItem::cut(app, None)?;
+                let copy  = PredefinedMenuItem::copy(app, None)?;
+                let paste = PredefinedMenuItem::paste(app, None)?;
+                let selall= PredefinedMenuItem::select_all(app, None)?;
+                Submenu::with_items(app, "&Edit", true, &[&undo, &redo, &sep1, &cut, &copy, &paste, &selall])?
+            };
+
+            let view_menu = {
+                let home  = MenuItem::with_id(app, "nav_home", "&Home", true, Some("CmdOrCtrl+H"))?;
+                let cats  = MenuItem::with_id(app, "nav_categories", "&Categories", true, None::<&str>)?;
+                let backup= MenuItem::with_id(app, "nav_backup", "&Backup", true, None::<&str>)?;
+                let sync  = MenuItem::with_id(app, "nav_sync", "Cloud &Sync", true, None::<&str>)?;
+                let sep   = PredefinedMenuItem::separator(app)?;
+                let notif = MenuItem::with_id(app, "nav_notifications", "&Notifications", true, None::<&str>)?;
+                Submenu::with_items(app, "&View", true, &[&home, &cats, &backup, &sync, &sep, &notif])?
+            };
+
+            let help_menu = {
+                let about = MenuItem::with_id(app, "about", "About DocVault", true, None::<&str>)?;
+                Submenu::with_items(app, "&Help", true, &[&about])?
+            };
+
+            let menu = Menu::with_items(app, &[&file_menu, &edit_menu, &view_menu, &help_menu])?;
+            app.set_menu(menu)?;
+
+            app.on_menu_event(|app, event| {
+                let emit_navigate = |hash: &str| {
+                    if let Some(w) = app.get_webview_window("main") {
+                        let _ = w.show();
+                        let _ = w.set_focus();
+                        let _ = w.emit("navigate", hash);
+                    }
+                };
+                match event.id().as_ref() {
+                    "add_document"      => emit_navigate("#/add"),
+                    "settings"          => emit_navigate("#/settings"),
+                    "nav_home"          => emit_navigate("#/"),
+                    "nav_categories"    => emit_navigate("#/categories"),
+                    "nav_backup"        => emit_navigate("#/backup"),
+                    "nav_sync"          => emit_navigate("#/sync"),
+                    "nav_notifications" => emit_navigate("#/notifications"),
+                    "hide" => {
+                        if let Some(w) = app.get_webview_window("main") {
+                            let _ = w.hide();
+                        }
+                    }
+                    "quit" => app.exit(0),
+                    "about" => {
+                        if let Some(w) = app.get_webview_window("main") {
+                            let _ = w.show();
+                            let _ = w.set_focus();
+                            let _ = w.emit("show-about", ());
+                        }
+                    }
+                    _ => {}
+                }
+            });
+
+            // ── System tray ───────────────────────────────────────────────
+            let tray_show = MenuItem::with_id(app, "tray_show", "Show DocVault", true, None::<&str>)?;
+            let tray_sep  = PredefinedMenuItem::separator(app)?;
+            let tray_quit = MenuItem::with_id(app, "tray_quit", "Quit DocVault", true, None::<&str>)?;
+            let tray_menu = Menu::with_items(app, &[&tray_show, &tray_sep, &tray_quit])?;
+
+            let icon = app.default_window_icon()
+                .expect("No default window icon found")
+                .clone();
+
+            TrayIconBuilder::new()
+                .icon(icon)
+                .menu(&tray_menu)
+                .tooltip("DocVault")
+                .on_menu_event(|app, event| match event.id().as_ref() {
+                    "tray_show" => {
+                        if let Some(w) = app.get_webview_window("main") {
+                            let _ = w.show();
+                            let _ = w.set_focus();
+                        }
+                    }
+                    "tray_quit" => app.exit(0),
+                    _ => {}
+                })
+                .on_tray_icon_event(|tray, event| {
+                    if let TrayIconEvent::Click {
+                        button: MouseButton::Left,
+                        button_state: MouseButtonState::Up,
+                        ..
+                    } = event
+                    {
+                        let app = tray.app_handle();
+                        if let Some(w) = app.get_webview_window("main") {
+                            let _ = w.show();
+                            let _ = w.set_focus();
+                        }
+                    }
+                })
+                .build(app)?;
+
             Ok(())
+        })
+        // Intercept close request: hide to tray instead of closing
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                window.hide().unwrap();
+                api.prevent_close();
+            }
         })
         .invoke_handler(tauri::generate_handler![
             // Settings
@@ -80,12 +228,6 @@ pub fn run() {
             // Backup
             commands::backup::create_backup,
             commands::backup::restore_backup,
-            // Sync
-            commands::sync::sync_now,
-            commands::sync::google_auth_start,
-            commands::sync::google_auth_callback,
-            commands::sync::google_auth_status,
-            commands::sync::google_auth_logout,
             // License
             commands::license::verify_license,
             commands::license::get_license_status,

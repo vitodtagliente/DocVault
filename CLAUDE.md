@@ -59,7 +59,6 @@ project-docvault/
 │       │   ├── ocr.rs          ← Tesseract CLI subprocess wrapper
 │       │   ├── export.rs       ← CSV export
 │       │   ├── backup.rs       ← ZIP backup / restore
-│       │   ├── sync.rs         ← Google Drive sync (OAuth2 + Drive API, Phase 8 TODO)
 │       │   └── license.rs      ← License key verify + status (HMAC-SHA256, offline)
 │       ├── db/
 │       │   ├── schema.rs       ← open_and_migrate(): opens DB, runs pending migrations
@@ -105,10 +104,23 @@ project-docvault/
 - The app is **fully functional without a license**. A valid key shows a thank-you banner only. No feature is gated.
 - Keys are generated with the `keygen/` tool: `cd keygen && cargo run -- <count>`.
 
-### Google Drive Sync
-- Backend stubs exist in `sync.rs`; full implementation is Phase 8 TODO.
-- The sync page is accessible to all users (no license gate).
-- Auth flow: OAuth2 PKCE. Tokens stored in the `settings` table (`google_access_token`, `google_refresh_token`).
+### Cloud Sync
+- No built-in cloud integration. `src/js/pages/sync.js` renders a static guide explaining how to use Google Drive for Desktop, Dropbox, or OneDrive to sync the storage folder.
+- The guide page is at `#/sync` and is accessible from the sidebar ("Cloud Sync").
+
+### System Tray
+- Closing the window hides to tray (`on_window_event` intercepts `CloseRequested`).
+- Left-click on tray icon or "Show DocVault" menu item restores the window.
+- Right-click tray menu: "Show DocVault" / "Quit DocVault".
+- Global shortcut **Shift+Alt+D** shows the window and focuses the search bar (emits `focus-search` event).
+- Plugin: `tauri-plugin-global-shortcut` (registered in `lib.rs`).
+
+### Native Menu Bar
+- File: Add Document (Ctrl+N), Settings (Ctrl+,), Hide, Quit
+- Edit: Undo, Redo, Cut, Copy, Paste, Select All (predefined)
+- View: Home, Categories, Backup, Cloud Sync, Notifications
+- Help: About DocVault (emits `show-about` event → About modal)
+- Menu events emit Tauri events (`navigate`, `show-about`) consumed by `app.js`.
 
 ---
 

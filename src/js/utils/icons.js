@@ -35,6 +35,9 @@ const faMap = {
   palette:      'fa-palette',
   lock:         'fa-lock',
   warning:      'fa-triangle-exclamation',
+  info:         'fa-circle-info',
+  shield:       'fa-shield-halved',
+  lightbulb:    'fa-lightbulb',
 };
 
 // Map Tailwind size classes to rem values

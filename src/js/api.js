@@ -73,13 +73,6 @@ export const exportCsv        = (filters, outputPath) => call('export_csv', { fi
 export const createBackup     = (outputPath)  => call('create_backup', { outputPath });
 export const restoreBackup    = (zipPath)     => call('restore_backup', { zipPath });
 
-// ─── Sync ─────────────────────────────────────────────────────────────────────
-export const syncNow          = ()            => call('sync_now');
-export const googleAuthStart  = ()            => call('google_auth_start');
-export const googleAuthCallback = (code)      => call('google_auth_callback', { code });
-export const googleAuthStatus = ()            => call('google_auth_status');
-export const googleAuthLogout = ()            => call('google_auth_logout');
-
 // ─── License ─────────────────────────────────────────────────────────────────
 export const verifyLicense    = (licenseKey)  => call('verify_license', { licenseKey });
 export const getLicenseStatus = ()            => call('get_license_status');
