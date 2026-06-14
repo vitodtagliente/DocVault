@@ -9,3 +9,4 @@ pub mod backup;
 pub mod license;
 pub mod import;
 pub mod untracked;
+pub mod update;

@@ -63,7 +63,8 @@ project-docvault/
 │       │   ├── files.rs        ← reveal_in_file_manager, open_with_system, read bytes/text
 │       │   ├── export.rs       ← CSV export
 │       │   ├── backup.rs       ← ZIP backup / restore
-│       │   └── license.rs      ← License key verify + status (HMAC-SHA256, offline)
+│       │   ├── license.rs      ← License key verify + status (HMAC-SHA256, offline)
+│       │   └── update.rs       ← check_for_update, download_and_install_update (tauri-plugin-updater)
 │       ├── db/
 │       │   ├── schema.rs       ← open_and_migrate(): opens DB, runs pending migrations
 │       │   ├── queries.rs      ← Low-level get_setting/set_setting + write_event helpers
@@ -139,11 +140,38 @@ project-docvault/
 ### Page Width Convention
 - All structured pages use `max-w-5xl mx-auto` as the content wrapper. Do not use smaller widths.
 
+### Auto-Updater
+- Plugin: `tauri-plugin-updater = "2"` (in `Cargo.toml`, registered in `lib.rs`).
+- Update endpoint: `https://github.com/vitodtagliente/DocVault/releases/latest/download/latest.json`
+  - This file is generated and uploaded automatically by `tauri-apps/tauri-action` when signing keys are present.
+- Artifacts are signed with a minisign key pair. Public key lives in `tauri.conf.json` under `plugins.updater.pubkey`.
+- On startup, the app silently checks for updates after 8 s; shows a modal if a newer version is available.
+- Two Tauri commands: `check_for_update` (returns `{version, notes}` or null) and `download_and_install_update` (downloads, installs, restarts).
+- JS wrappers: `api.checkForUpdate()` and `api.downloadAndInstallUpdate()`.
+
+**One-time setup** (required before the updater works end-to-end):
+
+1. **Generate a signing key pair**:
+   ```bash
+   cargo tauri signer generate -w ~/.tauri/docvault.key
+   ```
+   This outputs a public key to stdout and writes the private key to `~/.tauri/docvault.key`.
+
+2. **Set the public key in `tauri.conf.json`**:
+   Replace `REPLACE_WITH_YOUR_PUBLIC_KEY` in `plugins.updater.pubkey` with the public key printed in step 1.
+
+3. **Add GitHub Actions secrets** (Settings → Secrets and variables → Actions):
+   - `TAURI_SIGNING_PRIVATE_KEY` — contents of `~/.tauri/docvault.key`
+   - `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` — password chosen during key generation (leave empty if none)
+
+4. **Push a version tag** to trigger the release workflows. `tauri-apps/tauri-action` will sign all artifacts and upload `latest.json` to the release. Subsequent app installs will auto-update.
+
 ### CI / Release
-- `.github/workflows/release.yml` builds on all 3 platforms via `tauri-apps/tauri-action@v0`.
-- Triggered by any `v*` tag push. Creates a GitHub Release with installers attached automatically.
-- Matrix: `windows-latest`, `macos-latest` (aarch64 + x86_64 targets), `ubuntu-22.04`.
+- Four separate workflows in `.github/workflows/`: `build-windows.yml`, `build-macos-arm.yml`, `build-macos-x86.yml`, `build-linux.yml`.
+- Each is triggered by any `v*` tag push (or `workflow_dispatch`). Creates a GitHub Release with signed installers and `latest.json` attached.
 - Tailwind CSS is compiled (`npm run tw:build`) before `tauri-action` runs.
+- All workflows pass `TAURI_SIGNING_PRIVATE_KEY` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` to `tauri-action` for artifact signing.
+- Windows workflow additionally sets `updaterJsonPreferNsis: true` (prefers NSIS over MSI for silent updates).
 
 ---
 

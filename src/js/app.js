@@ -89,6 +89,9 @@ async function init() {
     // Check for files added or removed from storage outside the app
     checkUntrackedFiles(false);
     checkMissingFiles();
+
+    // Check for app updates silently in the background
+    setTimeout(() => checkForAppUpdate(), 8000);
   } catch (err) {
     console.error('[app] Init failed:', err);
     wireGlobalEvents();
@@ -232,6 +235,34 @@ function showMissingFolderModal() {
       },
     ],
   });
+}
+
+async function checkForAppUpdate() {
+  try {
+    const info = await api.checkForUpdate();
+    if (!info) return;
+    openModal({
+      title: t('update.available'),
+      body: `<p class="text-sm text-[var(--color-text-muted)]">${t('update.availableMsg').replace('{version}', info.version)}</p>`,
+      actions: [
+        {
+          label: t('update.install'),
+          variant: 'primary',
+          onClick: async () => {
+            closeModal();
+            await api.downloadAndInstallUpdate();
+          },
+        },
+        {
+          label: t('update.later'),
+          variant: 'secondary',
+          onClick: () => closeModal(),
+        },
+      ],
+    });
+  } catch {
+    // Non-fatal — ignore update check failure (no internet, not configured, etc.)
+  }
 }
 
 function applyTheme(theme) {

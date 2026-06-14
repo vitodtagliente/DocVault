@@ -110,6 +110,12 @@ const translations = {
     'app.missingFolderMsg': 'The configured storage folder no longer exists. Please reconfigure.',
     'app.reconfigure': 'Reconfigure',
 
+    // Updates
+    'update.available': 'Update available',
+    'update.availableMsg': 'DocVault {version} is ready to install. Would you like to update now?',
+    'update.install': 'Install & restart',
+    'update.later': 'Later',
+
     // Home
     'home.search': 'Search documents, tags, notes…',
     'home.selectDoc': 'Select a document to preview',
@@ -468,6 +474,12 @@ const translations = {
     'app.missingFolder': 'Cartella mancante',
     'app.missingFolderMsg': 'La cartella di archiviazione non esiste più. Riconfigura l\'app.',
     'app.reconfigure': 'Riconfigura',
+
+    // Updates
+    'update.available': 'Aggiornamento disponibile',
+    'update.availableMsg': 'DocVault {version} è pronto per l\'installazione. Vuoi aggiornare ora?',
+    'update.install': 'Installa e riavvia',
+    'update.later': 'Più tardi',
 
     // Home
     'home.search': 'Cerca documenti, tag, note…',

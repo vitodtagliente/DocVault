@@ -88,6 +88,10 @@ export const updateGlobalShortcut = (shortcutStr) => call('update_global_shortcu
 export const verifyLicense    = (licenseKey)  => call('verify_license', { licenseKey });
 export const getLicenseStatus = ()            => call('get_license_status');
 
+// ─── Updates ─────────────────────────────────────────────────────────────────
+export const checkForUpdate              = () => call('check_for_update');
+export const downloadAndInstallUpdate    = () => call('download_and_install_update');
+
 // ─── File dialog helpers (Tauri dialog plugin) ───────────────────────────────
 export async function openFileDialog(filters = []) {
   const dialog = window.__TAURI__?.dialog;
