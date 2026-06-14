@@ -14,7 +14,13 @@ import { TagInput } from '../components/tag-input.js';
 import router from '../router.js';
 import { today } from '../utils/date.js';
 
+// Cleanup hook for the file-drop listener registered during render
+let _unlistenFileDrop = null;
+
 export async function render(container) {
+  // Remove stale listener from the previous render
+  if (_unlistenFileDrop) { _unlistenFileDrop(); _unlistenFileDrop = null; }
+
   const { categories, tags, settings } = store.getState();
 
   // Mandatory: documents folder must be configured before adding a document
@@ -24,7 +30,7 @@ export async function render(container) {
   }
 
   container.innerHTML = `
-    <div class="max-w-3xl mx-auto">
+    <div class="max-w-5xl mx-auto">
       <h1 class="text-xl font-bold mb-6 text-[var(--color-text)]">${t('add.title')}</h1>
 
       <form id="add-form" class="space-y-5">
@@ -130,6 +136,40 @@ export async function render(container) {
       console.error(err);
     }
   });
+
+  // HTML5 drag events — visual feedback only (WebView2 doesn't expose file.path reliably)
+  dropArea.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+    dropArea.style.borderColor = 'var(--color-primary)';
+    dropArea.style.backgroundColor = 'rgba(37,99,235,.06)';
+  });
+
+  dropArea.addEventListener('dragleave', (e) => {
+    if (!dropArea.contains(e.relatedTarget)) {
+      dropArea.style.borderColor = '';
+      dropArea.style.backgroundColor = '';
+    }
+  });
+
+  dropArea.addEventListener('drop', (e) => {
+    e.preventDefault(); // prevent browser from navigating
+    dropArea.style.borderColor = '';
+    dropArea.style.backgroundColor = '';
+    // The actual path arrives via the global tauri://drag-drop → docvault:file-drop event
+  });
+
+  // Listen for file path dispatched by the global drag-drop handler in app.js
+  const onFileDrop = (e) => setFile(e.detail.path);
+  window.addEventListener('docvault:file-drop', onFileDrop);
+  _unlistenFileDrop = () => window.removeEventListener('docvault:file-drop', onFileDrop);
+
+  // Handle a file dropped from another page (stored in the state before navigation)
+  const pending = store.getState().pendingDropPath;
+  if (pending) {
+    store.setState({ pendingDropPath: null });
+    setFile(pending);
+  }
 
   function setFile(path) {
     filePath.value = path;

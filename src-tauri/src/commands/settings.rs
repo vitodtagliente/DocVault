@@ -4,6 +4,7 @@ use crate::models::AppSettings;
 use crate::db::queries;
 use crate::utils::file_ops::ensure_directory;
 use std::path::Path;
+use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut};
 
 #[tauri::command]
 pub async fn get_settings(state: State<'_, AppState>) -> Result<AppSettings, String> {
@@ -97,4 +98,71 @@ pub async fn complete_setup(
         .map_err(|e| e.to_string())?;
 
     queries::load_app_settings(&conn).map_err(|e| e.to_string())
+}
+
+/// Parse a human-readable shortcut string like "Shift+Alt+D" into a Shortcut.
+/// Exported so lib.rs can use it on startup.
+pub fn parse_shortcut_str(s: &str) -> Result<Shortcut, String> {
+    let mut mods = Modifiers::empty();
+    let mut key_code: Option<Code> = None;
+
+    for part in s.split('+').map(|p| p.trim()) {
+        match part {
+            "Shift"                               => mods |= Modifiers::SHIFT,
+            "Alt"                                 => mods |= Modifiers::ALT,
+            "Ctrl" | "Control"                    => mods |= Modifiers::CONTROL,
+            "Meta" | "Super" | "Win" | "Cmd"      => mods |= Modifiers::SUPER,
+            key => {
+                key_code = Some(match key {
+                    "A" => Code::KeyA, "B" => Code::KeyB, "C" => Code::KeyC,
+                    "D" => Code::KeyD, "E" => Code::KeyE, "F" => Code::KeyF,
+                    "G" => Code::KeyG, "H" => Code::KeyH, "I" => Code::KeyI,
+                    "J" => Code::KeyJ, "K" => Code::KeyK, "L" => Code::KeyL,
+                    "M" => Code::KeyM, "N" => Code::KeyN, "O" => Code::KeyO,
+                    "P" => Code::KeyP, "Q" => Code::KeyQ, "R" => Code::KeyR,
+                    "S" => Code::KeyS, "T" => Code::KeyT, "U" => Code::KeyU,
+                    "V" => Code::KeyV, "W" => Code::KeyW, "X" => Code::KeyX,
+                    "Y" => Code::KeyY, "Z" => Code::KeyZ,
+                    "0" => Code::Digit0, "1" => Code::Digit1, "2" => Code::Digit2,
+                    "3" => Code::Digit3, "4" => Code::Digit4, "5" => Code::Digit5,
+                    "6" => Code::Digit6, "7" => Code::Digit7, "8" => Code::Digit8,
+                    "9" => Code::Digit9,
+                    "F1"  => Code::F1,  "F2"  => Code::F2,  "F3"  => Code::F3,
+                    "F4"  => Code::F4,  "F5"  => Code::F5,  "F6"  => Code::F6,
+                    "F7"  => Code::F7,  "F8"  => Code::F8,  "F9"  => Code::F9,
+                    "F10" => Code::F10, "F11" => Code::F11, "F12" => Code::F12,
+                    "Space" => Code::Space,
+                    _ => return Err(format!("Unknown key: '{}'", key)),
+                });
+            }
+        }
+    }
+
+    let code = key_code.ok_or_else(|| "No key specified".to_string())?;
+    Ok(Shortcut::new(
+        if mods.is_empty() { None } else { Some(mods) },
+        code,
+    ))
+}
+
+/// Update the global shortcut. Pass an empty string to disable.
+#[tauri::command]
+pub async fn update_global_shortcut(
+    shortcut_str: String,
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    {
+        let conn = state.db.lock().map_err(|e| e.to_string())?;
+        queries::set_setting(&conn, "global_shortcut", &shortcut_str)
+            .map_err(|e| e.to_string())?;
+    }
+    let _ = app.global_shortcut().unregister_all();
+    if !shortcut_str.is_empty() {
+        let shortcut = parse_shortcut_str(&shortcut_str)?;
+        app.global_shortcut()
+            .register(shortcut)
+            .map_err(|e| format!("Failed to register shortcut: {}", e))?;
+    }
+    Ok(())
 }

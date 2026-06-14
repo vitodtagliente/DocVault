@@ -1,0 +1,108 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: 'Platform to build'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - windows
+          - macos-arm
+          - macos-x86
+          - linux
+
+jobs:
+  release:
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows-latest
+            key: windows
+            args: ''
+          - platform: macos-latest
+            key: macos-arm
+            args: '--target aarch64-apple-darwin'
+          - platform: macos-latest
+            key: macos-x86
+            args: '--target x86_64-apple-darwin'
+          - platform: ubuntu-22.04
+            key: linux
+            args: ''
+
+    runs-on: ${{ matrix.platform }}
+
+    # Skip entries that don't match the chosen platform (manual dispatch only)
+    if: >
+      github.event_name == 'push' ||
+      inputs.platform == 'all' ||
+      inputs.platform == matrix.key
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - name: Install Linux system dependencies
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libglib2.0-dev \
+            libgtk-3-dev \
+            libsoup-3.0-dev \
+            libjavascriptcoregtk-4.1-dev
+
+      - name: Install npm dependencies
+        run: npm install
+
+      - name: Build Tailwind CSS
+        run: npm run tw:build
+
+      - name: Build Tauri app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: 'DocVault ${{ github.ref_name }}'
+          releaseBody: |
+            ## DocVault ${{ github.ref_name }}
+
+            ### Downloads
+            - **Windows**: `.msi` installer or `.exe` setup
+            - **macOS (Apple Silicon)**: `.dmg` for M1/M2/M3 Macs
+            - **macOS (Intel)**: `.dmg` for Intel Macs
+            - **Linux**: `.deb` (Debian/Ubuntu) or `.AppImage`
+
+            See [USER_GUIDE.md](https://github.com/${{ github.repository }}/blob/main/docs/USER_GUIDE.md) for setup instructions.
+          releaseDraft: false
+          prerelease: false
+          args: ${{ matrix.args }}

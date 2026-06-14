@@ -12,6 +12,8 @@
  *   #/sync          → sync
  *   #/backup        → backup
  *   #/expiring      → expiring
+ *   #/about         → about
+ *   #/import        → import
  */
 
 import store from './store.js';
@@ -28,6 +30,8 @@ const routes = [
   { pattern: /^#\/backup$/, page: 'backup' },
   { pattern: /^#\/expiring$/, page: 'expiring' },
   { pattern: /^#\/notifications$/, page: 'notifications' },
+  { pattern: /^#\/about$/, page: 'about' },
+  { pattern: /^#\/import$/, page: 'import' },
 ];
 
 let currentCleanup = null;

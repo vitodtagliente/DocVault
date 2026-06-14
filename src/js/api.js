@@ -73,6 +73,17 @@ export const exportCsv        = (filters, outputPath) => call('export_csv', { fi
 export const createBackup     = (outputPath)  => call('create_backup', { outputPath });
 export const restoreBackup    = (zipPath)     => call('restore_backup', { zipPath });
 
+// ─── Import ──────────────────────────────────────────────────────────────────
+export const scanImportFolder       = (rootPath) => call('scan_import_folder', { rootPath });
+export const importDocuments        = (items)    => call('import_documents', { items });
+
+// ─── Untracked files ─────────────────────────────────────────────────────────
+export const checkUntrackedFiles    = ()         => call('check_untracked_files');
+export const importUntrackedFiles   = (items)    => call('import_untracked_files', { items });
+
+// ─── Shortcut ────────────────────────────────────────────────────────────────
+export const updateGlobalShortcut = (shortcutStr) => call('update_global_shortcut', { shortcutStr });
+
 // ─── License ─────────────────────────────────────────────────────────────────
 export const verifyLicense    = (licenseKey)  => call('verify_license', { licenseKey });
 export const getLicenseStatus = ()            => call('get_license_status');

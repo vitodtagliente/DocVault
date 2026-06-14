@@ -8,6 +8,13 @@
   },
   "app": {
     "withGlobalTauri": true,
+    "trayIcon": {
+      "id": "main",
+      "iconPath": "icons/icon.ico",
+      "iconAsTemplate": false,
+      "menuOnLeftClick": false,
+      "tooltip": "DocVault"
+    },
     "windows": [
       {
         "title": "DocVault",

@@ -7,13 +7,22 @@ import router from './router.js';
 import store from './store.js';
 import * as api from './api.js';
 import { initI18n, t } from './i18n.js';
-import { appConfig } from './app-config.js';
 import { renderSidebar } from './components/sidebar.js';
 import { renderHeader } from './components/header.js';
 import { renderBottomNav } from './components/bottom-nav.js';
 import { openModal, closeModal } from './components/modal.js';
+import { showUntrackedModal } from './components/untracked-modal.js';
+import { appConfig } from './app-config.js';
 
 async function init() {
+  // Stamp version in footer bar
+  const versionText = document.getElementById('version-text');
+  if (versionText) versionText.textContent = `v${appConfig.version}`;
+
+  // Hide version footer on setup page; show everywhere else
+  updateFooterVisibility();
+  window.addEventListener('hashchange', updateFooterVisibility);
+
   try {
     // Load settings
     const settings = await api.getSettings();
@@ -67,10 +76,13 @@ async function init() {
       if (stats) store.setState({ expiringCount: stats.expiring_soon });
     }).catch(() => {});
 
-    // Wire global navigation events (from native menu & tray)
+    // Wire global navigation events (from native menu, tray, drag-drop)
     wireGlobalEvents();
 
     router.init();
+
+    // Check for files added to storage from outside the app (e.g. Dropbox sync)
+    checkUntrackedFiles(false);
   } catch (err) {
     console.error('[app] Init failed:', err);
     wireGlobalEvents();
@@ -80,61 +92,107 @@ async function init() {
 }
 
 function wireGlobalEvents() {
-  // Tauri emits 'navigate' from menu actions
-  if (window.__TAURI__?.event) {
-    window.__TAURI__.event.listen('navigate', (event) => {
-      const hash = event.payload;
-      if (hash) router.navigate(hash);
-    });
+  if (!window.__TAURI__?.event) return;
 
-    window.__TAURI__.event.listen('focus-search', () => {
-      if (window.location.hash !== '#/' && window.location.hash !== '') {
-        router.navigate('#/');
-      }
-      // Give the page a moment to render, then focus the search input
-      setTimeout(() => {
-        document.querySelector('#search-input')?.focus();
-      }, 80);
-    });
+  // Native menu / tray navigation
+  window.__TAURI__.event.listen('navigate', (event) => {
+    const hash = event.payload;
+    if (hash) router.navigate(hash);
+  });
 
-    window.__TAURI__.event.listen('show-about', () => {
-      showAboutModal();
+  window.__TAURI__.event.listen('focus-search', () => {
+    if (window.location.hash !== '#/' && window.location.hash !== '') {
+      router.navigate('#/');
+    }
+    setTimeout(() => {
+      document.querySelector('#search-input')?.focus();
+    }, 80);
+  });
+
+  window.__TAURI__.event.listen('show-about', () => {
+    router.navigate('#/about');
+  });
+
+  // File system watcher: debounced batch notification from Rust
+  window.__TAURI__.event.listen('storage-changed', () => {
+    checkUntrackedFiles(true);
+  });
+
+  // ── Global drag-drop handling ────────────────────────────────────────────────
+  let _dragOverlay = null;
+
+  function showDragOverlay() {
+    if (_dragOverlay || window.location.hash === '#/add') return;
+    _dragOverlay = document.createElement('div');
+    Object.assign(_dragOverlay.style, {
+      position: 'fixed', inset: '0', zIndex: '500', pointerEvents: 'none',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: 'rgba(37,99,235,.08)',
+      border: '2.5px dashed var(--color-primary)',
     });
+    _dragOverlay.innerHTML = `
+      <div style="text-align:center;color:var(--color-primary)">
+        <i class="fa-solid fa-file-arrow-up" style="font-size:2.75rem;display:block;margin-bottom:.6rem"></i>
+        <p style="font-size:.95rem;font-weight:600">Drop to add document</p>
+      </div>`;
+    document.body.appendChild(_dragOverlay);
   }
 
-  // Also listen via CustomEvent (dispatched by sidebar About button)
-  window.addEventListener('show-about', () => showAboutModal());
+  function hideDragOverlay() {
+    if (_dragOverlay) { _dragOverlay.remove(); _dragOverlay = null; }
+  }
+
+  window.__TAURI__.event.listen('tauri://drag-enter', showDragOverlay);
+  window.__TAURI__.event.listen('tauri://drag-leave', hideDragOverlay);
+
+  window.__TAURI__.event.listen('tauri://drag-drop', (event) => {
+    hideDragOverlay();
+    const paths = event.payload?.paths;
+    if (!paths || paths.length === 0) return;
+    const path = paths[0];
+
+    if (window.location.hash === '#/add') {
+      // Page is already open — dispatch directly to it
+      window.dispatchEvent(new CustomEvent('docvault:file-drop', { detail: { path } }));
+    } else {
+      // Navigate to add page; the page will pick up the path from the store
+      store.setState({ pendingDropPath: path });
+      router.navigate('#/add');
+    }
+  });
 }
 
-function showAboutModal() {
-  openModal({
-    title: appConfig.name,
-    size: 'lg',
-    body: `
-      <div class="space-y-4 text-center">
-        <div style="display:flex;justify-content:center">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" style="width:3.5rem;height:3.5rem;color:var(--color-primary)">
-            <path d="M16 2L3 7.5v9.5c0 7.2 5.7 13.6 13 14.9C23.3 30.6 29 24.2 29 17V7.5L16 2z" fill="currentColor"/>
-            <path d="M11 11h7l4 4V23H11V11z" fill="white" fill-opacity="0.95"/>
-            <path d="M18 11l4 4h-3a1 1 0 0 1-1-1v-3z" fill="currentColor" fill-opacity="0.22"/>
-            <rect x="12.5" y="16.5" width="5.5" height="1.3" rx="0.65" fill="currentColor" fill-opacity="0.32"/>
-            <rect x="12.5" y="19.2" width="5.5" height="1.3" rx="0.65" fill="currentColor" fill-opacity="0.32"/>
-            <rect x="12.5" y="21.8" width="3.5" height="1.3" rx="0.65" fill="currentColor" fill-opacity="0.32"/>
-          </svg>
-        </div>
-        <div>
-          <h2 class="text-lg font-bold text-[var(--color-text)]">${appConfig.name}</h2>
-          <p class="text-sm text-[var(--color-text-muted)]">Version ${appConfig.version}</p>
-        </div>
-        ${appConfig.tagline ? `<p class="text-sm text-[var(--color-text-muted)] italic">${appConfig.tagline}</p>` : ''}
-        <div class="text-xs text-[var(--color-text-muted)] pt-2 space-y-1 border-t border-[var(--color-border)]">
-          <p>${appConfig.tech ?? 'Tauri · Vanilla JS · SQLite'}</p>
-          <p>© ${new Date().getFullYear()} DocVault</p>
-        </div>
-      </div>
-    `,
-    actions: [{ label: 'Close', variant: 'secondary', onClick: () => closeModal() }],
-  });
+// ── Footer helpers ─────────────────────────────────────────────────────────────
+
+function updateFooterVisibility() {
+  const bar = document.getElementById('version-bar');
+  if (!bar) return;
+  const onSetup = window.location.hash === '#/setup' || window.location.hash === '';
+  bar.style.display = onSetup ? 'none' : '';
+}
+
+function setFooterScanning(active) {
+  const text = document.getElementById('version-text');
+  if (!text) return;
+  text.innerHTML = active
+    ? `v${appConfig.version}&thinsp;<i class="fa-solid fa-circle-notch fa-spin" style="font-size:.6rem;opacity:.6"></i>`
+    : `v${appConfig.version}`;
+}
+
+// ── Untracked files ────────────────────────────────────────────────────────────
+
+async function checkUntrackedFiles(fromWatcher) {
+  setFooterScanning(true);
+  try {
+    const files = await api.checkUntrackedFiles();
+    if (files && files.length > 0) {
+      showUntrackedModal(files, { fromWatcher });
+    }
+  } catch {
+    // Non-fatal — storage path may not be set yet
+  } finally {
+    setFooterScanning(false);
+  }
 }
 
 async function checkStorageFolder(storagePath) {

@@ -77,7 +77,7 @@ async function loadAndRender(container) {
   }
 
   container.innerHTML = `
-    <div class="max-w-4xl mx-auto space-y-4">
+    <div class="max-w-5xl mx-auto space-y-4">
       <div class="flex items-center justify-between">
         <h1 class="text-xl font-bold text-[var(--color-text)]">${t('cat.title')}</h1>
         <button id="btn-new-cat" class="btn-primary">

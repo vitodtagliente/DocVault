@@ -51,14 +51,18 @@ export function renderSidebar(el) {
         </a>
 
         <hr class="border-[var(--color-border)] my-2"/>
+        <a href="#/import" class="nav-link ${currentPage === 'import' ? 'active' : ''} transition-colors">
+          <i class="fa-solid fa-file-import w-4 flex-shrink-0 opacity-70" style="font-size:.875rem"></i>
+          <span>${t('nav.import')}</span>
+        </a>
         <a href="#/sync" class="nav-link ${currentPage === 'sync' ? 'active' : ''} transition-colors">
           <span class="w-4 h-4 flex-shrink-0 opacity-70">${icon('cloud', 'w-4 h-4')}</span>
           <span>${t('nav.sync')}</span>
         </a>
-        <button id="sidebar-about-btn" class="nav-link w-full text-left transition-colors">
+        <a href="#/about" class="nav-link ${currentPage === 'about' ? 'active' : ''} transition-colors">
           <span class="w-4 h-4 flex-shrink-0 opacity-70">${icon('info', 'w-4 h-4')}</span>
           <span>${t('nav.about')}</span>
-        </button>
+        </a>
       </nav>
       <div class="px-4 py-3 border-t border-[var(--color-border)]">
         <a href="#/add" class="btn-primary w-full justify-center gap-2 transition-all hover:shadow-md">
@@ -69,17 +73,10 @@ export function renderSidebar(el) {
     `;
   };
 
-  const attachAbout = () => {
-    el.querySelector('#sidebar-about-btn')?.addEventListener('click', () => {
-      window.dispatchEvent(new CustomEvent('show-about'));
-    });
-  };
-
   render();
-  attachAbout();
-  store.subscribe('currentPage', () => { render(); attachAbout(); });
-  store.subscribe('lang', () => { render(); attachAbout(); });
-  store.subscribe('expiringCount', () => { render(); attachAbout(); });
+  store.subscribe('currentPage', render);
+  store.subscribe('lang', render);
+  store.subscribe('expiringCount', render);
 }
 
 function pageFromHash(hash) {

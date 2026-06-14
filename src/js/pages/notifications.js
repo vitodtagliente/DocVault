@@ -14,7 +14,7 @@ export async function render(container) {
   injectNotifStyles();
 
   container.innerHTML = `
-    <div class="space-y-6">
+    <div class="max-w-5xl mx-auto space-y-6">
       <h1 class="text-xl font-bold text-[var(--color-text)]">${t('notif.title')}</h1>
       <div class="flex items-center justify-center py-12"><div class="spinner"></div></div>
     </div>
@@ -46,7 +46,7 @@ export async function render(container) {
   const hasAny = expired.length > 0 || expiringSoon.length > 0;
 
   container.innerHTML = `
-    <div class="space-y-6">
+    <div class="max-w-5xl mx-auto space-y-6">
       <h1 class="text-xl font-bold text-[var(--color-text)]">${t('notif.title')}</h1>
 
       ${!hasAny ? `
@@ -105,23 +105,24 @@ function notifRow(doc, severity, days) {
   else                 dayLabel = t('notif.inDays', { days });
 
   return `
-    <div class="card notif-row"
-         style="border-left:4px solid ${borderColor};background:${bgColor};
-                display:flex;align-items:center;gap:.875rem;padding:.75rem 1rem">
-      <div style="width:.75rem;height:.75rem;border-radius:50%;flex-shrink:0;background:${doc.category_color}"></div>
+    <div class="notif-row"
+         style="border-left:3px solid ${borderColor};background:${bgColor};
+                border:1px solid var(--color-border);border-left:3px solid ${borderColor};
+                border-radius:var(--radius-md);
+                display:flex;align-items:center;gap:.75rem;padding:.5rem .875rem">
+      <div style="width:.5rem;height:.5rem;border-radius:50%;flex-shrink:0;background:${doc.category_color}"></div>
       <div style="flex:1;min-width:0">
-        <p style="font-size:.875rem;font-weight:500;color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+        <p style="font-size:.8125rem;font-weight:500;color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
           ${escHtml(doc.title)}
         </p>
-        <p style="font-size:.75rem;color:var(--color-text-muted);margin-top:2px">
-          ${escHtml(doc.category_name)} &middot; ${formatDate(doc.document_date)} &middot;
-          ${t('notif.expiresLabel')} ${formatDate(doc.expiry_date)}
+        <p style="font-size:.7rem;color:var(--color-text-muted);margin-top:1px">
+          ${escHtml(doc.category_name)} · ${formatDate(doc.document_date)} · ${t('notif.expiresLabel')} ${formatDate(doc.expiry_date)}
         </p>
       </div>
-      <div style="display:flex;align-items:center;gap:.625rem;flex-shrink:0">
-        <span style="font-size:.7rem;padding:2px 8px;border-radius:999px;font-weight:600;
+      <div style="display:flex;align-items:center;gap:.5rem;flex-shrink:0">
+        <span style="font-size:.65rem;padding:1px 7px;border-radius:999px;font-weight:600;
                      background:${badgeBg};color:${badgeFg}">${dayLabel}</span>
-        <button class="btn-ghost" style="font-size:.75rem;padding:.3rem .625rem;display:flex;align-items:center;gap:.3rem"
+        <button class="btn-ghost" style="font-size:.75rem;padding:.25rem .5rem;display:flex;align-items:center;gap:.25rem"
                 data-notif-open="${doc.id}">
           ${icon('eye', 'w-3.5 h-3.5')} ${t('notif.openDoc')}
         </button>

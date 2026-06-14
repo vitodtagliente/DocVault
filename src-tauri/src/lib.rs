@@ -8,7 +8,7 @@ use rusqlite::Connection;
 use tauri::{Emitter, Manager};
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem, Submenu};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
-use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
+use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
 
 /// Shared application state — the SQLite connection protected by a Mutex.
 pub struct AppState {
@@ -28,10 +28,8 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
-                .with_handler(|app, shortcut, event| {
-                    if event.state() == ShortcutState::Pressed
-                        && shortcut.matches(Modifiers::SHIFT | Modifiers::ALT, Code::KeyD)
-                    {
+                .with_handler(|app, _shortcut, event| {
+                    if event.state() == ShortcutState::Pressed {
                         if let Some(win) = app.get_webview_window("main") {
                             let _ = win.show();
                             let _ = win.set_focus();
@@ -52,13 +50,19 @@ pub fn run() {
 
             app.manage(AppState { db: Mutex::new(conn) });
 
-            // ── Global shortcut: Shift+Alt+D ─────────────────────────────
-            app.global_shortcut()
-                .register(Shortcut::new(
-                    Some(Modifiers::SHIFT | Modifiers::ALT),
-                    Code::KeyD,
-                ))
-                .expect("Failed to register global shortcut");
+            // ── Global shortcut (loaded from DB, default Shift+Alt+D) ────
+            let shortcut_str = {
+                let st = app.state::<AppState>();
+                let db = st.db.lock().map_err(|e| e.to_string())?;
+                crate::db::queries::get_setting(&db, "global_shortcut")
+                    .unwrap_or(None)
+                    .unwrap_or_else(|| "Shift+Alt+D".to_string())
+            };
+            if !shortcut_str.is_empty() {
+                if let Ok(sc) = commands::settings::parse_shortcut_str(&shortcut_str) {
+                    let _ = app.global_shortcut().register(sc);
+                }
+            }
 
             // ── Native menu bar ──────────────────────────────────────────
             let file_menu = {
@@ -70,17 +74,6 @@ pub fn run() {
                 let sep2 = PredefinedMenuItem::separator(app)?;
                 let sep3 = PredefinedMenuItem::separator(app)?;
                 Submenu::with_items(app, "&File", true, &[&add, &sep1, &settings, &sep2, &hide, &sep3, &quit])?
-            };
-
-            let edit_menu = {
-                let undo  = PredefinedMenuItem::undo(app, None)?;
-                let redo  = PredefinedMenuItem::redo(app, None)?;
-                let sep1  = PredefinedMenuItem::separator(app)?;
-                let cut   = PredefinedMenuItem::cut(app, None)?;
-                let copy  = PredefinedMenuItem::copy(app, None)?;
-                let paste = PredefinedMenuItem::paste(app, None)?;
-                let selall= PredefinedMenuItem::select_all(app, None)?;
-                Submenu::with_items(app, "&Edit", true, &[&undo, &redo, &sep1, &cut, &copy, &paste, &selall])?
             };
 
             let view_menu = {
@@ -98,7 +91,7 @@ pub fn run() {
                 Submenu::with_items(app, "&Help", true, &[&about])?
             };
 
-            let menu = Menu::with_items(app, &[&file_menu, &edit_menu, &view_menu, &help_menu])?;
+            let menu = Menu::with_items(app, &[&file_menu, &view_menu, &help_menu])?;
             app.set_menu(menu)?;
 
             app.on_menu_event(|app, event| {
@@ -140,9 +133,7 @@ pub fn run() {
             let tray_quit = MenuItem::with_id(app, "tray_quit", "Quit DocVault", true, None::<&str>)?;
             let tray_menu = Menu::with_items(app, &[&tray_show, &tray_sep, &tray_quit])?;
 
-            let icon = app.default_window_icon()
-                .expect("No default window icon found")
-                .clone();
+            let icon = tauri::include_image!("icons/32x32.png");
 
             TrayIconBuilder::new()
                 .icon(icon)
@@ -173,6 +164,16 @@ pub fn run() {
                     }
                 })
                 .build(app)?;
+
+            // ── Storage watcher (background thread) ──────────────────────
+            {
+                let watcher_app = app.app_handle().clone();
+                std::thread::spawn(move || {
+                    // Brief delay to let the app finish initialising
+                    std::thread::sleep(std::time::Duration::from_secs(3));
+                    commands::untracked::run_storage_watcher(watcher_app);
+                });
+            }
 
             Ok(())
         })
@@ -231,6 +232,14 @@ pub fn run() {
             // License
             commands::license::verify_license,
             commands::license::get_license_status,
+            // Shortcut
+            commands::settings::update_global_shortcut,
+            // Import
+            commands::import::scan_import_folder,
+            commands::import::import_documents,
+            // Untracked
+            commands::untracked::check_untracked_files,
+            commands::untracked::import_untracked_files,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

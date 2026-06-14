@@ -33,6 +33,8 @@ pub fn load_app_settings(conn: &Connection) -> Result<AppSettings> {
     let theme = get_setting(conn, "theme")?.unwrap_or_else(|| "system".into());
     let language = get_setting(conn, "language")?.unwrap_or_default();
     let last_sync_at = get_setting(conn, "last_sync_at")?;
+    let global_shortcut = get_setting(conn, "global_shortcut")?
+        .unwrap_or_else(|| "Shift+Alt+D".to_string());
 
     Ok(AppSettings {
         storage_path,
@@ -42,6 +44,7 @@ pub fn load_app_settings(conn: &Connection) -> Result<AppSettings> {
         theme,
         language,
         last_sync_at,
+        global_shortcut,
     })
 }
 

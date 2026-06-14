@@ -27,7 +27,7 @@ export async function render(container) {
   }
 
   container.innerHTML = `
-    <div class="max-w-4xl mx-auto space-y-6">
+    <div class="max-w-5xl mx-auto space-y-6">
       <h1 class="text-xl font-bold text-[var(--color-text)]">${t('settings.title')}</h1>
 
       <!-- Appearance -->
@@ -66,6 +66,39 @@ export async function render(container) {
             </button>
           </div>
           <div id="change-storage-status" class="hidden mt-2"></div>
+        </div>
+      </div>
+
+      <!-- Shortcut -->
+      <div class="card space-y-4">
+        <h2 class="text-sm font-semibold text-[var(--color-text)]">${t('settings.shortcut')}</h2>
+        <p class="text-xs text-[var(--color-text-muted)]">${t('settings.shortcutDesc')}</p>
+        <div id="shortcut-display" class="flex items-center gap-3 flex-wrap">
+          <div class="flex items-center gap-1.5">
+            <span class="text-xs text-[var(--color-text-muted)]">${t('settings.shortcutCurrent')}:</span>
+            <span id="shortcut-badge">${shortcutBadge(settings.global_shortcut)}</span>
+          </div>
+          <div class="flex gap-2">
+            <button id="btn-record-shortcut" class="btn-secondary text-xs py-1">${t('settings.shortcutRecord')}</button>
+            <button id="btn-disable-shortcut" class="btn-ghost text-xs py-1"
+                    ${!settings.global_shortcut ? 'disabled' : ''}>${t('settings.shortcutDisable')}</button>
+          </div>
+        </div>
+        <div id="shortcut-recorder" class="hidden space-y-2">
+          <div id="shortcut-capture-box"
+               tabindex="0"
+               class="input text-sm font-mono select-none cursor-pointer flex items-center justify-center"
+               style="min-height:2.5rem;text-align:center;color:var(--color-text-muted)">
+            ${t('settings.shortcutRecording')}
+          </div>
+          <div id="shortcut-preview" class="hidden flex items-center gap-2 flex-wrap">
+            <span class="text-xs text-[var(--color-text-muted)]">${t('settings.shortcutCurrent')}:</span>
+            <span id="shortcut-preview-badge"></span>
+          </div>
+          <div class="flex gap-2">
+            <button id="btn-save-shortcut" class="btn-primary text-xs py-1" disabled>${t('settings.shortcutSave')}</button>
+            <button id="btn-cancel-shortcut" class="btn-ghost text-xs py-1">${t('settings.shortcutCancel')}</button>
+          </div>
         </div>
       </div>
 
@@ -170,6 +203,107 @@ export async function render(container) {
       showToast(msg, 'error');
     }
   });
+
+  // ── Shortcut recorder ─────────────────────────────────────────────────────
+  let capturedShortcut = '';
+
+  const btnRecord    = container.querySelector('#btn-record-shortcut');
+  const btnDisable   = container.querySelector('#btn-disable-shortcut');
+  const displayEl    = container.querySelector('#shortcut-display');
+  const recorderEl   = container.querySelector('#shortcut-recorder');
+  const captureBox   = container.querySelector('#shortcut-capture-box');
+  const previewEl    = container.querySelector('#shortcut-preview');
+  const previewBadge = container.querySelector('#shortcut-preview-badge');
+  const btnSave      = container.querySelector('#btn-save-shortcut');
+  const btnCancel    = container.querySelector('#btn-cancel-shortcut');
+
+  function showRecorder() {
+    displayEl.classList.add('hidden');
+    recorderEl.classList.remove('hidden');
+    capturedShortcut = '';
+    captureBox.textContent = t('settings.shortcutRecording');
+    captureBox.style.color = 'var(--color-text-muted)';
+    previewEl.classList.add('hidden');
+    btnSave.disabled = true;
+    captureBox.focus();
+  }
+
+  function hideRecorder() {
+    recorderEl.classList.add('hidden');
+    displayEl.classList.remove('hidden');
+  }
+
+  btnRecord?.addEventListener('click', showRecorder);
+  btnCancel?.addEventListener('click', hideRecorder);
+
+  captureBox?.addEventListener('keydown', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const modifierOnly = ['Shift','Alt','Control','Meta','CapsLock','Tab','Escape','Dead'];
+    if (modifierOnly.includes(e.key)) return;
+
+    const parts = [];
+    if (e.ctrlKey)  parts.push('Ctrl');
+    if (e.shiftKey) parts.push('Shift');
+    if (e.altKey)   parts.push('Alt');
+    if (e.metaKey)  parts.push('Meta');
+
+    if (parts.length === 0) {
+      captureBox.textContent = t('settings.shortcutInvalid');
+      captureBox.style.color = 'var(--color-danger, #ef4444)';
+      btnSave.disabled = true;
+      return;
+    }
+
+    let key = e.key;
+    if (key === ' ') key = 'Space';
+    else if (key.length === 1) key = key.toUpperCase();
+
+    parts.push(key);
+    capturedShortcut = parts.join('+');
+    captureBox.textContent = capturedShortcut;
+    captureBox.style.color = 'var(--color-text)';
+    previewBadge.innerHTML = shortcutBadge(capturedShortcut);
+    previewEl.classList.remove('hidden');
+    btnSave.disabled = false;
+  });
+
+  btnDisable?.addEventListener('click', async () => {
+    try {
+      await api.updateGlobalShortcut('');
+      container.querySelector('#shortcut-badge').innerHTML = shortcutBadge('');
+      btnDisable.disabled = true;
+      showToast(t('settings.shortcutUpdated'), 'success');
+    } catch (err) {
+      showToast(t('settings.error') + err, 'error');
+    }
+  });
+
+  btnSave?.addEventListener('click', async () => {
+    if (!capturedShortcut) return;
+    try {
+      await api.updateGlobalShortcut(capturedShortcut);
+      container.querySelector('#shortcut-badge').innerHTML = shortcutBadge(capturedShortcut);
+      btnDisable.disabled = false;
+      hideRecorder();
+      showToast(t('settings.shortcutUpdated'), 'success');
+    } catch (err) {
+      showToast(t('settings.shortcutInvalid') + ': ' + err, 'error');
+    }
+  });
+}
+
+function shortcutBadge(str) {
+  if (!str) {
+    return `<span class="text-xs italic" style="color:var(--color-text-muted)">${t('settings.shortcutDisabled')}</span>`;
+  }
+  const sep = `<span style="font-size:.7rem;margin:0 .15rem;color:var(--color-text-muted)">+</span>`;
+  return str.split('+').map(key =>
+    `<kbd style="display:inline-flex;align-items:center;padding:.1rem .4rem;border-radius:.25rem;
+border:1px solid var(--color-border);background:var(--color-surface);
+font-size:.7rem;font-family:monospace;color:var(--color-text);
+box-shadow:0 1px 0 var(--color-border)">${key}</kbd>`
+  ).join(sep);
 }
 
 function escHtml(str) {

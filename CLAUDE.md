@@ -21,6 +21,9 @@
 
 ```
 project-docvault/
+├── .github/
+│   └── workflows/
+│       └── release.yml         ← Cross-platform Tauri builds; creates GitHub Release on tag push
 ├── src/                        ← Frontend (served as static files by Tauri)
 │   ├── index.html              ← Single HTML shell; all routing is hash-based
 │   ├── app.config.json         ← App name, version, tagline (read at runtime)
@@ -35,6 +38,8 @@ project-docvault/
 │   │   ├── i18n.js             ← EN + IT translations; t() helper
 │   │   ├── app-config.js       ← Reads app.config.json at startup
 │   │   ├── pages/              ← One file per route; each exports render(container)
+│   │   │   ├── about.js        ← Dedicated About page (#/about)
+│   │   │   └── sync.js         ← Cloud Sync guide (static, no API calls)
 │   │   ├── components/         ← Reusable UI fragments (modal, toast, header…)
 │   │   ├── viewers/            ← PDF (pdf.js), image, Markdown (marked) viewers
 │   │   └── utils/              ← date, debounce, dom, format, icons helpers
@@ -42,7 +47,7 @@ project-docvault/
 │
 ├── src-tauri/                  ← Rust backend
 │   ├── Cargo.toml
-│   ├── tauri.conf.json         ← Window config, bundle targets, CSP
+│   ├── tauri.conf.json         ← Window config, bundle targets, CSP, trayIcon
 │   ├── build.rs
 │   ├── migrations/             ← SQL files run in order at startup (001_, 002_…)
 │   └── src/
@@ -50,7 +55,7 @@ project-docvault/
 │       ├── main.rs             ← Thin binary entry point
 │       ├── commands/           ← Tauri commands grouped by domain
 │       │   ├── mod.rs          ← pub mod declarations
-│       │   ├── settings.rs     ← App settings, storage path, setup
+│       │   ├── settings.rs     ← App settings, storage path, setup, global shortcut
 │       │   ├── documents.rs    ← CRUD, duplicate detection (hash)
 │       │   ├── search.rs       ← FTS5 full-text search, suggestions, stats
 │       │   ├── categories.rs   ← Category + preset field management
@@ -119,8 +124,29 @@ project-docvault/
 - File: Add Document (Ctrl+N), Settings (Ctrl+,), Hide, Quit
 - Edit: Undo, Redo, Cut, Copy, Paste, Select All (predefined)
 - View: Home, Categories, Backup, Cloud Sync, Notifications
-- Help: About DocVault (emits `show-about` event → About modal)
+- Help: About DocVault (emits `show-about` event → navigates to `#/about`)
 - Menu events emit Tauri events (`navigate`, `show-about`) consumed by `app.js`.
+
+### About Page
+- Dedicated page at `#/about` (`src/js/pages/about.js`). Not a modal.
+- Shows logo, version, stack, platform, identifier, copyright.
+- Accessible from sidebar nav link and Help → About DocVault menu item.
+
+### Global Shortcut (configurable)
+- Default: `Shift+Alt+D`. Stored in `settings` table as `global_shortcut`.
+- `settings.rs` exports `parse_shortcut_str()` which maps human-readable strings to `tauri-plugin-global-shortcut` types.
+- `update_global_shortcut` Tauri command: saves to DB, unregisters all, registers new (empty = disable).
+- Settings page has a keyboard-capture recorder UI — click "Record", press a combo, Save or Cancel.
+- Plugin: `tauri-plugin-global-shortcut = "2"` (Cargo.toml + capabilities/default.json).
+
+### Page Width Convention
+- All structured pages use `max-w-5xl mx-auto` as the content wrapper. Do not use smaller widths.
+
+### CI / Release
+- `.github/workflows/release.yml` builds on all 3 platforms via `tauri-apps/tauri-action@v0`.
+- Triggered by any `v*` tag push. Creates a GitHub Release with installers attached automatically.
+- Matrix: `windows-latest`, `macos-latest` (aarch64 + x86_64 targets), `ubuntu-22.04`.
+- Tailwind CSS is compiled (`npm run tw:build`) before `tauri-action` runs.
 
 ---
 

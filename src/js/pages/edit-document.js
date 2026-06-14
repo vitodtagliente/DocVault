@@ -34,7 +34,7 @@ export async function render(container, id) {
   const doc = detail.document;
 
   container.innerHTML = `
-    <div class="max-w-3xl mx-auto">
+    <div class="max-w-5xl mx-auto">
       <h1 class="text-xl font-bold mb-6 text-[var(--color-text)]">${t('edit.title')}</h1>
 
       <form id="edit-form" class="space-y-5">

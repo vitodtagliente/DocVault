@@ -9,6 +9,7 @@ pub struct AppSettings {
     pub theme: String,
     pub language: String,
     pub last_sync_at: Option<String>,
+    pub global_shortcut: String,
 }
 
 impl Default for AppSettings {
@@ -21,6 +22,7 @@ impl Default for AppSettings {
             theme: "system".to_string(),
             language: "it".to_string(),
             last_sync_at: None,
+            global_shortcut: "Shift+Alt+D".to_string(),
         }
     }
 }
