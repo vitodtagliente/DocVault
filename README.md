@@ -5,7 +5,7 @@ Offline-first personal document vault built with **Tauri 2**, **Vanilla JS**, **
 > See [docs/USER_GUIDE.md](docs/USER_GUIDE.md) for the customer-facing feature guide.  
 > See [CLAUDE.md](CLAUDE.md) for the full developer/AI context reference.
 
-## Features
+## Features 
 
 - 📂 Offline-first document catalog (any file type)
 - 🏷️ Custom categories with per-category preset fields
