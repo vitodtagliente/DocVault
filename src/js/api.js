@@ -79,6 +79,7 @@ export const checkUntrackedFiles    = ()         => call('check_untracked_files'
 export const importUntrackedFiles   = (items)    => call('import_untracked_files', { items });
 export const checkMissingFiles      = ()         => call('check_missing_files');
 export const deleteDocumentsBatch   = (ids)      => call('delete_documents_batch', { ids });
+export const resetVault             = ()         => call('reset_vault');
 
 // ─── Shortcut ────────────────────────────────────────────────────────────────
 export const updateGlobalShortcut = (shortcutStr) => call('update_global_shortcut', { shortcutStr });

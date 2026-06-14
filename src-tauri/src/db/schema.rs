@@ -30,7 +30,8 @@ fn run_migrations(conn: &Connection) -> Result<()> {
         ("001_initial",           include_str!("../../migrations/001_initial.sql")),
         ("002_add_ocr_text",      include_str!("../../migrations/002_add_ocr_text.sql")),
         ("003_fts5_and_drive",    include_str!("../../migrations/003_fts5_and_drive.sql")),
-        ("004_add_subcategories", include_str!("../../migrations/004_add_subcategories.sql")),
+        ("004_add_subcategories",        include_str!("../../migrations/004_add_subcategories.sql")),
+        ("005_group_default_categories", include_str!("../../migrations/005_group_default_categories.sql")),
     ];
 
     for (name, sql) in migrations {

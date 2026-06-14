@@ -52,7 +52,7 @@ export async function render(container) {
                   class="text-sm font-medium flex items-center gap-1.5"
                   style="color:var(--color-primary)">
             <i class="fa-brands fa-github"></i>
-            github.com/docvault/docvault
+            github.com/vitodtagliente/docvault
           </button>
         </div>
       </div>
@@ -64,6 +64,6 @@ export async function render(container) {
   `;
 
   container.querySelector('#github-link').addEventListener('click', () => {
-    openUrl('https://github.com/docvault/docvault');
+    openUrl('https://github.com/vitodtagliente/docvault');
   });
 }

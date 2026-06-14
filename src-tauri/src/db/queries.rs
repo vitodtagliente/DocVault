@@ -275,7 +275,7 @@ pub fn get_document_custom_fields(conn: &Connection, document_id: &str) -> Resul
            )
          ORDER BY is_own ASC, pf.sort_order ASC"
     )?;
-    let rows = stmt.query_map(params![document_id, document_id, document_id, document_id, document_id], |row| {
+    let rows = stmt.query_map(params![document_id], |row| {
         let options_json: Option<String> = row.get(4)?;
         let field_options = options_json.and_then(|s| serde_json::from_str::<Vec<String>>(&s).ok());
         Ok(CustomFieldWithValue {

@@ -15,10 +15,15 @@ import { showUntrackedModal } from './components/untracked-modal.js';
 import { showDeletedModal } from './components/deleted-modal.js';
 import { appConfig } from './app-config.js';
 
+let _footerSuffix = '';
+
+function renderFooter() {
+  const text = document.getElementById('version-text');
+  if (text) text.textContent = `v${appConfig.version}${_footerSuffix}`;
+}
+
 async function init() {
-  // Stamp version in footer bar
-  const versionText = document.getElementById('version-text');
-  if (versionText) versionText.textContent = `v${appConfig.version}`;
+  renderFooter();
 
   try {
     // Load settings
@@ -68,10 +73,13 @@ async function init() {
       checkStorageFolder(settings.storage_path);
     }
 
-    // Load expiry count for notification badge
+    // Load expiry count + license status for footer
     api.getStats().then(stats => {
       if (stats) store.setState({ expiringCount: stats.expiring_soon });
     }).catch(() => {});
+
+    _footerSuffix = settings.license_status === 'pro' ? ' · Licensed ❤' : ' · Free';
+    renderFooter();
 
     // Wire global navigation events (from native menu, tray, drag-drop)
     wireGlobalEvents();
@@ -166,9 +174,9 @@ function wireGlobalEvents() {
 function setFooterScanning(active) {
   const text = document.getElementById('version-text');
   if (!text) return;
-  text.innerHTML = active
-    ? `v${appConfig.version}&thinsp;<i class="fa-solid fa-circle-notch fa-spin" style="font-size:.6rem;opacity:.6"></i>`
-    : `v${appConfig.version}`;
+  text.textContent = active
+    ? `v${appConfig.version} ⟳${_footerSuffix}`
+    : `v${appConfig.version}${_footerSuffix}`;
 }
 
 // ── Untracked files ────────────────────────────────────────────────────────────

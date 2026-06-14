@@ -232,6 +232,8 @@ pub fn run() {
             commands::license::get_license_status,
             // Shortcut
             commands::settings::update_global_shortcut,
+            // Reset
+            commands::settings::reset_vault,
             // Import
             commands::import::scan_import_folder,
             commands::import::import_documents,

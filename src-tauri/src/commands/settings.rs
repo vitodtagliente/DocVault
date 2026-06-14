@@ -166,3 +166,19 @@ pub async fn update_global_shortcut(
     }
     Ok(())
 }
+
+/// Wipe all user data and settings so the app starts fresh.
+/// Categories and preset fields are preserved.
+/// Files on disk are never touched.
+#[tauri::command]
+pub async fn reset_vault(state: State<'_, AppState>) -> Result<(), String> {
+    let conn = state.db.lock().map_err(|e| e.to_string())?;
+    conn.execute_batch(
+        "DELETE FROM document_tags;
+         DELETE FROM document_fields;
+         DELETE FROM documents;
+         DELETE FROM tags;
+         DELETE FROM event_log;
+         DELETE FROM settings;"
+    ).map_err(|e| e.to_string())
+}

@@ -7,7 +7,7 @@ import store from '../store.js';
 import { t, initI18n, getCurrentLang } from '../i18n.js';
 import { appConfig } from '../app-config.js';
 import { showToast } from '../components/toast.js';
-import { confirm } from '../components/modal.js';
+import { confirm, openModal, closeModal } from '../components/modal.js';
 
 export async function render(container) {
   let settings;
@@ -100,6 +100,15 @@ export async function render(container) {
             <button id="btn-cancel-shortcut" class="btn-ghost text-xs py-1">${t('settings.shortcutCancel')}</button>
           </div>
         </div>
+      </div>
+
+      <!-- Danger Zone -->
+      <div class="card space-y-4" style="border:1px solid #fca5a5">
+        <h2 class="text-sm font-semibold" style="color:#dc2626">${t('settings.dangerZone')}</h2>
+        <p class="text-xs text-[var(--color-text-muted)]">${t('settings.resetDesc')}</p>
+        <button id="reset-vault-btn" class="btn-secondary text-sm" style="color:#dc2626;border-color:#fca5a5">
+          <i class="fa-solid fa-rotate-left mr-1.5"></i>${t('settings.resetBtn')}
+        </button>
       </div>
 
       <!-- License -->
@@ -202,6 +211,55 @@ export async function render(container) {
                 : t('settings.error') + err;
       showToast(msg, 'error');
     }
+  });
+
+  // Reset vault
+  container.querySelector('#reset-vault-btn')?.addEventListener('click', () => {
+    openModal({
+      title: t('settings.resetTitle'),
+      body: `
+        <div class="space-y-3">
+          <div class="flex items-start gap-3 p-3 rounded-lg" style="background:#fef2f2;border:1px solid #fca5a5">
+            <i class="fa-solid fa-triangle-exclamation mt-0.5 flex-shrink-0" style="color:#dc2626"></i>
+            <div class="text-sm space-y-1.5" style="color:#991b1b">
+              <p class="font-semibold">${t('settings.resetWarningTitle')}</p>
+              <ul class="list-disc pl-4 space-y-0.5 text-xs">
+                <li>${t('settings.resetWarn1')}</li>
+                <li>${t('settings.resetWarn2')}</li>
+                <li>${t('settings.resetWarn3')}</li>
+              </ul>
+            </div>
+          </div>
+          <p class="text-sm text-[var(--color-text-muted)]">${t('settings.resetFilesNote')}</p>
+          <div>
+            <label class="label text-xs">${t('settings.resetTypeConfirm')}</label>
+            <input id="reset-confirm-input" class="input text-sm font-mono" placeholder="RESET" autocomplete="off" />
+          </div>
+        </div>
+      `,
+      actions: [
+        { label: t('settings.resetCancel'), variant: 'secondary', onClick: closeModal },
+        {
+          label: t('settings.resetConfirmBtn'),
+          variant: 'primary',
+          style: 'background:#dc2626;border-color:#dc2626',
+          onClick: async () => {
+            const val = document.querySelector('#reset-confirm-input')?.value.trim();
+            if (val !== 'RESET') {
+              document.querySelector('#reset-confirm-input')?.classList.add('border-red-400');
+              return;
+            }
+            try {
+              await api.resetVault();
+              closeModal();
+              window.location.reload();
+            } catch (err) {
+              showToast(t('settings.error') + err, 'error');
+            }
+          },
+        },
+      ],
+    });
   });
 
   // ── Shortcut recorder ─────────────────────────────────────────────────────
