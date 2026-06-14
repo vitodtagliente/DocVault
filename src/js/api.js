@@ -63,9 +63,6 @@ export const openWithSystem   = (documentId)  => call('open_with_system', { docu
 export const readFileBytes    = (documentId)  => call('read_file_bytes', { documentId });
 export const readFileText     = (documentId)  => call('read_file_text', { documentId });
 
-// ─── OCR ─────────────────────────────────────────────────────────────────────
-export const runOcr           = (documentId, languages) => call('run_ocr', { documentId, languages });
-
 // ─── Export ──────────────────────────────────────────────────────────────────
 export const exportCsv        = (filters, outputPath) => call('export_csv', { filters, outputPath });
 
@@ -80,6 +77,8 @@ export const importDocuments        = (items)    => call('import_documents', { i
 // ─── Untracked files ─────────────────────────────────────────────────────────
 export const checkUntrackedFiles    = ()         => call('check_untracked_files');
 export const importUntrackedFiles   = (items)    => call('import_untracked_files', { items });
+export const checkMissingFiles      = ()         => call('check_missing_files');
+export const deleteDocumentsBatch   = (ids)      => call('delete_documents_batch', { ids });
 
 // ─── Shortcut ────────────────────────────────────────────────────────────────
 export const updateGlobalShortcut = (shortcutStr) => call('update_global_shortcut', { shortcutStr });

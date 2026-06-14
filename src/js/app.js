@@ -12,6 +12,7 @@ import { renderHeader } from './components/header.js';
 import { renderBottomNav } from './components/bottom-nav.js';
 import { openModal, closeModal } from './components/modal.js';
 import { showUntrackedModal } from './components/untracked-modal.js';
+import { showDeletedModal } from './components/deleted-modal.js';
 import { appConfig } from './app-config.js';
 
 async function init() {
@@ -77,8 +78,9 @@ async function init() {
 
     router.init();
 
-    // Check for files added to storage from outside the app (e.g. Dropbox sync)
+    // Check for files added or removed from storage outside the app
     checkUntrackedFiles(false);
+    checkMissingFiles();
   } catch (err) {
     console.error('[app] Init failed:', err);
     wireGlobalEvents();
@@ -112,6 +114,7 @@ function wireGlobalEvents() {
   // File system watcher: debounced batch notification from Rust
   window.__TAURI__.event.listen('storage-changed', () => {
     checkUntrackedFiles(true);
+    checkMissingFiles();
   });
 
   // ── Global drag-drop handling ────────────────────────────────────────────────
@@ -181,6 +184,17 @@ async function checkUntrackedFiles(fromWatcher) {
     // Non-fatal — storage path may not be set yet
   } finally {
     setFooterScanning(false);
+  }
+}
+
+async function checkMissingFiles() {
+  try {
+    const missing = await api.checkMissingFiles();
+    if (missing && missing.length > 0) {
+      showDeletedModal(missing);
+    }
+  } catch {
+    // Non-fatal
   }
 }
 

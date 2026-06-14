@@ -95,12 +95,6 @@ export async function render(container) {
           <div id="tag-input-container"></div>
         </div>
 
-        <!-- OCR -->
-        <label class="flex items-center gap-2 text-sm cursor-pointer select-none">
-          <input type="checkbox" id="run-ocr" class="rounded" />
-          <span>${t('add.ocrLabel')}</span>
-        </label>
-
         <!-- Actions -->
         <div class="flex gap-3 pt-2">
           <button type="submit" class="btn-primary flex-1" id="submit-btn">
@@ -219,7 +213,6 @@ export async function render(container) {
       notes: form.querySelector('#doc-notes').value,
       tags: tagInput.getTags(),
       custom_fields: collectCustomFields(form),
-      run_ocr: form.querySelector('#run-ocr').checked,
       force,
     });
 

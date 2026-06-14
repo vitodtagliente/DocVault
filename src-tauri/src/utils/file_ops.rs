@@ -37,10 +37,12 @@ pub fn sanitize_filename(name: &str) -> String {
 }
 
 /// Generates the relative storage path for a document.
-/// Format: `{category_slug}/{year}/{YYYYMMDD}_{sanitized_title}.{ext}`
+/// Format (top-level):  `{category_slug}/{year}/{YYYYMMDD}_{title}.{ext}`
+/// Format (subcategory): `{parent_slug}/{category_slug}/{year}/{YYYYMMDD}_{title}.{ext}`
 /// Appends `_N` suffix to avoid collisions.
 pub fn generate_storage_path(
     category_slug: &str,
+    parent_slug: Option<&str>,
     document_date: &str,
     title: &str,
     extension: &str,
@@ -51,16 +53,17 @@ pub fn generate_storage_path(
     let safe_title = sanitize_filename(title);
     let ext = extension.trim_start_matches('.');
 
-    let base_rel = format!("{}/{}/{}_{}",
-        category_slug, year, date_compact, safe_title);
+    let folder = match parent_slug {
+        Some(p) => format!("{}/{}", p, category_slug),
+        None    => category_slug.to_string(),
+    };
+
+    let base_rel = format!("{}/{}/{}_{}", folder, year, date_compact, safe_title);
 
     let mut candidate = format!("{}.{}", base_rel, ext);
     let mut n = 2u32;
     loop {
-        let full_path = base_path.join(&candidate);
-        if !full_path.exists() {
-            break;
-        }
+        if !base_path.join(&candidate).exists() { break; }
         candidate = format!("{}_{}.{}", base_rel, n, ext);
         n += 1;
     }

@@ -13,7 +13,7 @@
  *   #/backup        → backup
  *   #/expiring      → expiring
  *   #/about         → about
- *   #/import        → import
+ *   #/import        → import (bulk folder import)
  */
 
 import store from './store.js';
@@ -32,7 +32,6 @@ const routes = [
   { pattern: /^#\/notifications$/, page: 'notifications' },
   { pattern: /^#\/about$/, page: 'about' },
   { pattern: /^#\/import$/, page: 'import' },
-  { pattern: /^#\/ocr-setup$/, page: 'ocr-setup' },
 ];
 
 let currentCleanup = null;

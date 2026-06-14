@@ -10,6 +10,7 @@ pub struct Category {
     pub color: String,
     pub is_system: bool,
     pub sort_order: i32,
+    pub parent_id: Option<String>,
     pub created_at: String,
     pub updated_at: String,
     pub deleted_at: Option<String>,
@@ -20,6 +21,7 @@ pub struct CreateCategoryPayload {
     pub name: String,
     pub icon: Option<String>,
     pub color: Option<String>,
+    pub parent_id: Option<String>,
     pub fields: Vec<CreatePresetFieldPayload>,
 }
 
@@ -30,4 +32,5 @@ pub struct UpdateCategoryPayload {
     pub icon: Option<String>,
     pub color: Option<String>,
     pub sort_order: Option<i32>,
+    pub parent_id: Option<String>,
 }

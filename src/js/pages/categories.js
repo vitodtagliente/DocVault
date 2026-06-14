@@ -7,6 +7,7 @@ import { t } from '../i18n.js';
 import { icon } from '../utils/icons.js';
 import { showToast } from '../components/toast.js';
 import { openModal, closeModal, confirm } from '../components/modal.js';
+import { buildCategoryOrder } from '../components/preset-selector.js';
 
 const COLOR_PALETTE = [
   '#3b82f6','#8b5cf6','#06b6d4','#10b981','#f59e0b',
@@ -85,20 +86,23 @@ async function loadAndRender(container) {
         </button>
       </div>
       <div class="space-y-2" id="cat-list">
-        ${categories.map(cat => categoryRow(cat)).join('')}
+        ${buildCategoryOrder(categories).map(({ cat, isChild }) => categoryRow(cat, isChild)).join('')}
       </div>
     </div>
   `;
 }
 
-function categoryRow(cat) {
+function categoryRow(cat, isChild = false) {
   return `
-    <div class="card cat-row" style="display:flex;align-items:center;gap:.75rem;padding:.75rem 1rem">
+    <div class="card cat-row" style="display:flex;align-items:center;gap:.75rem;padding:.75rem 1rem;
+         ${isChild ? 'margin-left:1.5rem;border-left:2px solid ' + cat.color + ';' : ''}">
       <div style="width:1.5rem;height:1.5rem;border-radius:50%;flex-shrink:0;
                   background-color:${cat.color};
                   box-shadow:0 0 0 2px var(--color-bg),0 0 0 3.5px ${cat.color}"></div>
       <div style="flex:1;min-width:0">
-        <p style="font-weight:500;font-size:.9rem;color:var(--color-text)">${escHtml(cat.name)}</p>
+        <p style="font-weight:500;font-size:.9rem;color:var(--color-text)">
+          ${isChild ? '<span style="opacity:.45;font-size:.8rem;margin-right:.3rem">↳</span>' : ''}${escHtml(cat.name)}
+        </p>
         <p style="font-size:.75rem;color:var(--color-text-muted);margin-top:1px">${cat.slug}</p>
       </div>
       <div style="display:flex;align-items:center;gap:.25rem">
@@ -130,12 +134,24 @@ function pickUnusedColor(categories) {
 
 function openNewCategoryModal(container, categories) {
   const defaultColor = pickUnusedColor(categories);
+  // Only top-level categories can be parents (no nesting beyond 1 level)
+  const topLevel = categories.filter(c => !c.parent_id);
+  const parentOptions = topLevel.map(c =>
+    `<option value="${escHtml(c.id)}">${escHtml(c.name)}</option>`
+  ).join('');
 
   openModal({
     title: t('cat.newCategoryTitle'),
     size: 'lg',
     body: `
       <div class="space-y-4">
+        <div>
+          <label class="label text-xs">${t('cat.parentCategory')}</label>
+          <select id="new-cat-parent" class="input text-sm">
+            <option value="">${t('cat.noParent')}</option>
+            ${parentOptions}
+          </select>
+        </div>
         <div>
           <label class="label text-xs">${t('cat.nameLabel')}</label>
           <input type="text" id="new-cat-name" class="input"
@@ -163,12 +179,13 @@ function openNewCategoryModal(container, categories) {
       { label: t('cat.cancel'), variant: 'secondary', onClick: closeModal },
       {
         label: t('cat.create'), variant: 'primary', onClick: async () => {
-          const name  = document.querySelector('#new-cat-name')?.value.trim();
+          const name     = document.querySelector('#new-cat-name')?.value.trim();
           if (!name) { showToast(t('cat.enterName'), 'warning'); return; }
-          const icon_ = document.querySelector('#new-cat-icon')?.value || 'folder';
-          const color = document.querySelector('#new-cat-color')?.value || defaultColor;
+          const icon_    = document.querySelector('#new-cat-icon')?.value || 'folder';
+          const color    = document.querySelector('#new-cat-color')?.value || defaultColor;
+          const parentId = document.querySelector('#new-cat-parent')?.value || null;
           try {
-            await api.createCategory({ name, icon: icon_, color, fields: [] });
+            await api.createCategory({ name, icon: icon_, color, parent_id: parentId, fields: [] });
             closeModal();
             showToast(t('cat.created'), 'success');
             await loadAndRender(container);

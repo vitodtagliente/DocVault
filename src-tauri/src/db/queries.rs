@@ -52,7 +52,7 @@ pub fn load_app_settings(conn: &Connection) -> Result<AppSettings> {
 
 pub fn get_all_categories(conn: &Connection) -> Result<Vec<Category>> {
     let mut stmt = conn.prepare(
-        "SELECT id, name, slug, icon, color, is_system, sort_order, created_at, updated_at, deleted_at
+        "SELECT id, name, slug, icon, color, is_system, sort_order, parent_id, created_at, updated_at, deleted_at
          FROM categories WHERE deleted_at IS NULL ORDER BY sort_order, name"
     )?;
     let rows = stmt.query_map([], |row| {
@@ -64,9 +64,10 @@ pub fn get_all_categories(conn: &Connection) -> Result<Vec<Category>> {
             color: row.get(4)?,
             is_system: row.get::<_, i32>(5)? != 0,
             sort_order: row.get(6)?,
-            created_at: row.get(7)?,
-            updated_at: row.get(8)?,
-            deleted_at: row.get(9)?,
+            parent_id: row.get(7)?,
+            created_at: row.get(8)?,
+            updated_at: row.get(9)?,
+            deleted_at: row.get(10)?,
         })
     })?;
     rows.collect()
@@ -74,7 +75,7 @@ pub fn get_all_categories(conn: &Connection) -> Result<Vec<Category>> {
 
 pub fn get_category_by_id(conn: &Connection, id: &str) -> Result<Option<Category>> {
     let result = conn.query_row(
-        "SELECT id, name, slug, icon, color, is_system, sort_order, created_at, updated_at, deleted_at
+        "SELECT id, name, slug, icon, color, is_system, sort_order, parent_id, created_at, updated_at, deleted_at
          FROM categories WHERE id = ?1",
         params![id],
         |row| Ok(Category {
@@ -85,9 +86,10 @@ pub fn get_category_by_id(conn: &Connection, id: &str) -> Result<Option<Category
             color: row.get(4)?,
             is_system: row.get::<_, i32>(5)? != 0,
             sort_order: row.get(6)?,
-            created_at: row.get(7)?,
-            updated_at: row.get(8)?,
-            deleted_at: row.get(9)?,
+            parent_id: row.get(7)?,
+            created_at: row.get(8)?,
+            updated_at: row.get(9)?,
+            deleted_at: row.get(10)?,
         }),
     );
     match result {
@@ -95,6 +97,38 @@ pub fn get_category_by_id(conn: &Connection, id: &str) -> Result<Option<Category
         Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
         Err(e) => Err(e),
     }
+}
+
+/// Helper: look up parent slug for a category (None if top-level).
+pub fn get_parent_slug(conn: &Connection, category: &Category) -> Option<String> {
+    let pid = category.parent_id.as_deref()?;
+    conn.query_row(
+        "SELECT slug FROM categories WHERE id = ?1",
+        params![pid],
+        |r| r.get(0),
+    ).ok()
+}
+
+/// Return preset fields for a category, parent fields first (for inheritance).
+pub fn get_preset_fields_with_inheritance(
+    conn: &Connection,
+    category_id: &str,
+) -> Result<Vec<crate::models::PresetField>> {
+    let mut out = Vec::new();
+
+    // Parent fields first
+    let parent_id: Option<String> = conn.query_row(
+        "SELECT parent_id FROM categories WHERE id = ?1",
+        params![category_id],
+        |r| r.get(0),
+    ).ok().flatten();
+    if let Some(pid) = parent_id {
+        out.extend(get_preset_fields_for_category(conn, &pid)?);
+    }
+
+    // Own fields
+    out.extend(get_preset_fields_for_category(conn, category_id)?);
+    Ok(out)
 }
 
 // ─── Tags ────────────────────────────────────────────────────────────────────
@@ -194,7 +228,7 @@ pub fn get_preset_fields_for_category(conn: &Connection, category_id: &str) -> R
 pub fn get_document_by_id(conn: &Connection, id: &str) -> Result<Option<Document>> {
     let result = conn.query_row(
         "SELECT id, title, original_name, file_extension, file_size, file_hash, mime_type,
-                storage_path, category_id, document_date, expiry_date, notes, ocr_text,
+                storage_path, category_id, document_date, expiry_date, notes,
                 is_favorite, created_at, updated_at, deleted_at
          FROM documents WHERE id = ?1",
         params![id],
@@ -211,11 +245,10 @@ pub fn get_document_by_id(conn: &Connection, id: &str) -> Result<Option<Document
             document_date: row.get(9)?,
             expiry_date: row.get(10)?,
             notes: row.get(11)?,
-            ocr_text: row.get(12)?,
-            is_favorite: row.get::<_, i32>(13)? != 0,
-            created_at: row.get(14)?,
-            updated_at: row.get(15)?,
-            deleted_at: row.get(16)?,
+            is_favorite: row.get::<_, i32>(12)? != 0,
+            created_at: row.get(13)?,
+            updated_at: row.get(14)?,
+            deleted_at: row.get(15)?,
         }),
     );
     match result {
@@ -226,16 +259,23 @@ pub fn get_document_by_id(conn: &Connection, id: &str) -> Result<Option<Document
 }
 
 pub fn get_document_custom_fields(conn: &Connection, document_id: &str) -> Result<Vec<CustomFieldWithValue>> {
+    // Include fields from parent category (if any) before own category fields
     let mut stmt = conn.prepare(
         "SELECT pf.id, pf.field_name, pf.field_label, pf.field_type, pf.field_options,
-                COALESCE(df.field_value, '') as value
+                COALESCE(df.field_value, '') as value,
+                CASE WHEN pf.category_id = (SELECT category_id FROM documents WHERE id = ?1) THEN 1 ELSE 0 END as is_own
          FROM preset_fields pf
          LEFT JOIN document_fields df ON pf.id = df.field_id AND df.document_id = ?1
-         WHERE pf.category_id = (SELECT category_id FROM documents WHERE id = ?1)
-           AND pf.deleted_at IS NULL
-         ORDER BY pf.sort_order"
+         WHERE pf.deleted_at IS NULL
+           AND (
+             pf.category_id = (SELECT category_id FROM documents WHERE id = ?1)
+             OR pf.category_id = (
+               SELECT parent_id FROM categories WHERE id = (SELECT category_id FROM documents WHERE id = ?1)
+             )
+           )
+         ORDER BY is_own ASC, pf.sort_order ASC"
     )?;
-    let rows = stmt.query_map(params![document_id], |row| {
+    let rows = stmt.query_map(params![document_id, document_id, document_id, document_id, document_id], |row| {
         let options_json: Option<String> = row.get(4)?;
         let field_options = options_json.and_then(|s| serde_json::from_str::<Vec<String>>(&s).ok());
         Ok(CustomFieldWithValue {

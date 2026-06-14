@@ -9,6 +9,7 @@ import { t } from '../i18n.js';
 import { showToast } from './toast.js';
 import { formatFileSize } from '../utils/format.js';
 import store from '../store.js';
+import router from '../router.js';
 
 let _backdrop = null;
 
@@ -158,6 +159,7 @@ export function showUntrackedModal(files, { fromWatcher = false } = {}) {
       // Reload stats
       const stats = await api.getStats().catch(() => null);
       if (stats) store.setState({ expiringCount: stats.expiring_soon });
+      router.reload();
     } catch (err) {
       showToast(String(err), 'error');
       importBtn.disabled = false;

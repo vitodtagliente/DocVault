@@ -51,9 +51,11 @@ pub async fn create_document(
     let file_size = source.metadata().map_err(|e| e.to_string())?.len() as i64;
     let mime_type = mime_from_extension(&extension).to_string();
 
+    let parent_slug = queries::get_parent_slug(&conn, &category);
     let base_path = Path::new(&storage_path_str);
     let rel_path = generate_storage_path(
         &category.slug,
+        parent_slug.as_deref(),
         &payload.document_date,
         &payload.title,
         &extension,
@@ -117,24 +119,6 @@ pub async fn create_document(
         .map_err(|e| e.to_string())?
         .ok_or_else(|| "Document not found after insert".to_string())?;
 
-    // Run OCR synchronously if requested — release DB lock first so OCR subprocess
-    // doesn't block other operations, then re-acquire to write the result.
-    let run_ocr = payload.run_ocr;
-    let doc_id_for_ocr = id.clone();
-    let full_path_for_ocr = Path::new(&storage_path_str).join(&rel_path);
-    drop(conn);
-
-    if run_ocr {
-        if let Some(ocr_text) = crate::commands::ocr::run_tesseract_sync(&full_path_for_ocr, "ita+eng") {
-            if let Ok(conn) = state.db.lock() {
-                let _ = conn.execute(
-                    "UPDATE documents SET ocr_text = ?2, updated_at = datetime('now') WHERE id = ?1",
-                    rusqlite::params![doc_id_for_ocr, ocr_text],
-                );
-            }
-        }
-    }
-
     Ok(doc)
 }
 
@@ -171,8 +155,9 @@ pub async fn update_document(
             .ok_or("Category not found")?;
         let ext = doc.file_extension.trim_start_matches('.');
 
+        let new_parent_slug = queries::get_parent_slug(&conn, &new_cat);
         let candidate = generate_storage_path(
-            &new_cat.slug, new_date, new_title, ext, base_path,
+            &new_cat.slug, new_parent_slug.as_deref(), new_date, new_title, ext, base_path,
         );
         let old_dest = base_path.join(&doc.storage_path);
         let new_dest = base_path.join(&candidate);

@@ -73,7 +73,12 @@ pub async fn search_documents(
 
     if let Some(ref cat_id) = filters.category_id {
         if !cat_id.is_empty() {
-            conditions.push(format!("d.category_id = ?{}", param_idx));
+            // Match the selected category AND any of its direct subcategories
+            conditions.push(format!(
+                "(d.category_id = ?{p} OR d.category_id IN \
+                 (SELECT id FROM categories WHERE parent_id = ?{p} AND deleted_at IS NULL))",
+                p = param_idx
+            ));
             params.push(Box::new(cat_id.clone()));
             param_idx += 1;
         }
@@ -159,10 +164,10 @@ pub async fn search_documents(
                 fts_param = Some(fts_q);
                 param_idx += 1;
             } else {
-                // Fallback: LIKE on title, notes, ocr_text
+                // Fallback: LIKE on title and notes
                 let like_q = format!("%{}%", q_trim);
                 conditions.push(format!(
-                    "(d.title LIKE ?{0} OR d.notes LIKE ?{0} OR d.ocr_text LIKE ?{0})",
+                    "(d.title LIKE ?{0} OR d.notes LIKE ?{0})",
                     param_idx
                 ));
                 params.push(Box::new(like_q));

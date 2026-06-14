@@ -204,8 +204,9 @@ pub async fn import_documents(
         let file_size = source.metadata().map(|m| m.len() as i64).unwrap_or(0);
         let mime_type = mime_from_extension(&ext).to_string();
 
+        let parent_slug = queries::get_parent_slug(&conn, &category);
         let rel_path = generate_storage_path(
-            &category.slug, &doc_date, &item.title, &ext, &base_path,
+            &category.slug, parent_slug.as_deref(), &doc_date, &item.title, &ext, &base_path,
         );
         let dest = base_path.join(&rel_path);
 

@@ -1,5 +1,6 @@
 import { t } from '../i18n.js';
 import { icon } from '../utils/icons.js';
+import { buildCategoryOrder } from './preset-selector.js';
 
 export function filterBarHtml(filters, categories, tags) {
   return `
@@ -10,9 +11,9 @@ export function filterBarHtml(filters, categories, tags) {
         <label class="label text-xs">${t('filter.category')}</label>
         <select class="input text-sm py-1.5" id="filter-category">
           <option value="">${t('filter.allCategories')}</option>
-          ${(categories || []).map(c => `
-            <option value="${c.id}" ${filters.category_id === c.id ? 'selected' : ''}>
-              ${escHtml(c.name)}
+          ${buildCategoryOrder(categories).map(({ cat, isChild }) => `
+            <option value="${cat.id}" ${filters.category_id === cat.id ? 'selected' : ''}>
+              ${isChild ? '↳ ' : ''}${escHtml(cat.name)}
             </option>
           `).join('')}
         </select>

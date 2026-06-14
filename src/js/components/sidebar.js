@@ -59,10 +59,6 @@ export function renderSidebar(el) {
           <span class="w-4 h-4 flex-shrink-0 opacity-70">${icon('cloud', 'w-4 h-4')}</span>
           <span>${t('nav.sync')}</span>
         </a>
-        <a href="#/ocr-setup" class="nav-link ${currentPage === 'ocr-setup' ? 'active' : ''} transition-colors">
-          <i class="fa-solid fa-magnifying-glass-plus w-4 flex-shrink-0 opacity-70" style="font-size:.875rem"></i>
-          <span>${t('nav.ocrSetup')}</span>
-        </a>
         <a href="#/about" class="nav-link ${currentPage === 'about' ? 'active' : ''} transition-colors">
           <span class="w-4 h-4 flex-shrink-0 opacity-70">${icon('info', 'w-4 h-4')}</span>
           <span>${t('nav.about')}</span>

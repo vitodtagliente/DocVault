@@ -6,7 +6,7 @@ use std::time::{Duration, Instant};
 use tauri::{Manager, State};
 use crate::AppState;
 use crate::db::queries;
-use crate::utils::file_ops::mime_from_extension;
+use crate::utils::file_ops::{mime_from_extension, generate_storage_path, ensure_directory, sanitize_filename};
 use crate::utils::hash::sha256_file;
 use crate::commands::import::ImportResult;
 
@@ -29,6 +29,15 @@ pub struct UntrackedImportItem {
     pub title: String,
     pub category_id: String,
     pub document_date: String,
+}
+
+#[derive(Debug, Serialize, Clone)]
+pub struct MissingFile {
+    pub id: String,
+    pub title: String,
+    pub storage_path: String,
+    pub file_extension: String,
+    pub category_name: String,
 }
 
 /// Return all files in the storage folder that have no matching record in the documents table.
@@ -116,17 +125,22 @@ fn scan_untracked(
     }
 }
 
-/// Register untracked files in-place — file is already in the storage folder, no copy needed.
+/// Register untracked files and move each one to its canonical vault location
+/// (`{category-slug}/{year}/{YYYYMMDD}_{title}.{ext}`).
 #[tauri::command]
 pub async fn import_untracked_files(
     items: Vec<UntrackedImportItem>,
     state: State<'_, AppState>,
 ) -> Result<ImportResult, String> {
     let conn = state.db.lock().map_err(|e| e.to_string())?;
+    let storage_path_str = queries::get_setting(&conn, "storage_path")
+        .map_err(|e| e.to_string())?
+        .unwrap_or_default();
     let device_id = queries::get_setting(&conn, "device_id")
         .map_err(|e| e.to_string())?
         .unwrap_or_default();
     let current_year = chrono::Utc::now().format("%Y").to_string();
+    let base_path = Path::new(&storage_path_str).to_path_buf();
 
     let mut imported = 0u32;
     let mut skipped = 0u32;
@@ -146,7 +160,6 @@ pub async fn import_untracked_files(
             Err(e) => { failed += 1; errors.push(format!("{}: {}", item.title, e)); continue; }
         };
 
-        // If same content already tracked under a different path, skip
         if let Ok(Some(_)) = queries::find_document_by_hash(&conn, &file_hash) {
             skipped += 1; continue;
         }
@@ -157,10 +170,60 @@ pub async fn import_untracked_files(
             format!("{}-01-01", current_year)
         };
 
+        let category = match queries::get_category_by_id(&conn, &item.category_id) {
+            Ok(Some(c)) => c,
+            _ => { failed += 1; errors.push(format!("Category not found for: {}", item.title)); continue; }
+        };
+
         let ext = source.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
         let original_name = source.file_name().and_then(|n| n.to_str()).unwrap_or("").to_string();
         let file_size = source.metadata().map(|m| m.len() as i64).unwrap_or(0);
         let mime_type = mime_from_extension(&ext).to_string();
+
+        // Build the canonical base relative path (without collision suffix) to compare.
+        // If the file is already there, skip the move.
+        let parent_slug = queries::get_parent_slug(&conn, &category);
+        let year = &doc_date[..4];
+        let date_compact = doc_date.replace('-', "");
+        let safe_title = sanitize_filename(&item.title);
+        let folder = match parent_slug.as_deref() {
+            Some(p) => format!("{}/{}", p, category.slug),
+            None    => category.slug.clone(),
+        };
+        let base_rel_norm = format!("{}/{}/{}_{}.{}", folder, year, date_compact, safe_title, ext);
+        let current_rel = item.relative_path.replace('\\', "/");
+
+        let final_rel = if current_rel == base_rel_norm {
+            // Already in canonical location
+            current_rel
+        } else {
+            // Generate a collision-free target path and move the file
+            let proper_rel = generate_storage_path(&category.slug, parent_slug.as_deref(), &doc_date, &item.title, &ext, &base_path);
+            let proper_abs = base_path.join(&proper_rel);
+
+            if let Some(parent) = proper_abs.parent() {
+                if let Err(e) = ensure_directory(parent) {
+                    failed += 1;
+                    errors.push(format!("{}: cannot create directory: {}", item.title, e));
+                    continue;
+                }
+            }
+
+            match std::fs::rename(source, &proper_abs) {
+                Ok(()) => proper_rel,
+                Err(_) => {
+                    // Cross-device or other rename failure — fall back to copy + delete
+                    match std::fs::copy(source, &proper_abs) {
+                        Ok(_) => { std::fs::remove_file(source).ok(); proper_rel }
+                        Err(e) => {
+                            failed += 1;
+                            errors.push(format!("{}: move failed: {}", item.title, e));
+                            continue;
+                        }
+                    }
+                }
+            }
+        };
 
         let id = uuid::Uuid::new_v4().to_string();
         let now = crate::utils::date::now_iso();
@@ -172,7 +235,7 @@ pub async fn import_untracked_files(
              VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,NULL,'',0,?11,?11)",
             rusqlite::params![
                 id, item.title, original_name, format!(".{}", ext),
-                file_size, file_hash, mime_type, item.relative_path,
+                file_size, file_hash, mime_type, final_rel,
                 item.category_id, doc_date, now
             ],
         ) {
@@ -182,7 +245,7 @@ pub async fn import_untracked_files(
         }
 
         queries::write_event(&conn, &device_id, "document.registered", "document", &id,
-            &serde_json::json!({"title": item.title, "path": item.relative_path})).ok();
+            &serde_json::json!({"title": item.title, "path": final_rel})).ok();
 
         imported += 1;
     }
@@ -190,11 +253,77 @@ pub async fn import_untracked_files(
     Ok(ImportResult { imported, skipped_duplicates: skipped, failed, errors })
 }
 
+/// Return all tracked documents whose file no longer exists on disk.
+/// If the storage folder itself is missing (e.g. external drive disconnected)
+/// returns an empty list to avoid false positives.
+#[tauri::command]
+pub async fn check_missing_files(state: State<'_, AppState>) -> Result<Vec<MissingFile>, String> {
+    let conn = state.db.lock().map_err(|e| e.to_string())?;
+
+    let storage_path = queries::get_setting(&conn, "storage_path")
+        .map_err(|e| e.to_string())?
+        .unwrap_or_default();
+
+    if storage_path.is_empty() { return Ok(vec![]); }
+    let base = Path::new(&storage_path);
+    if !base.exists() { return Ok(vec![]); }
+
+    let mut stmt = conn.prepare(
+        "SELECT d.id, d.title, d.storage_path, d.file_extension, c.name
+         FROM documents d
+         JOIN categories c ON d.category_id = c.id
+         WHERE d.deleted_at IS NULL"
+    ).map_err(|e| e.to_string())?;
+
+    let missing: Vec<MissingFile> = stmt
+        .query_map([], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, String>(3)?,
+                row.get::<_, String>(4)?,
+            ))
+        })
+        .map_err(|e| e.to_string())?
+        .filter_map(|r| r.ok())
+        .filter(|(_, _, rel_path, _, _)| !base.join(rel_path).exists())
+        .map(|(id, title, storage_path, ext, cat_name)| MissingFile {
+            id,
+            title,
+            storage_path,
+            file_extension: ext,
+            category_name: cat_name,
+        })
+        .collect();
+
+    Ok(missing)
+}
+
+/// Soft-delete a batch of documents by ID (marks deleted_at, does not touch files).
+#[tauri::command]
+pub async fn delete_documents_batch(
+    ids: Vec<String>,
+    state: State<'_, AppState>,
+) -> Result<u32, String> {
+    let conn = state.db.lock().map_err(|e| e.to_string())?;
+    let now = crate::utils::date::now_iso();
+    let mut deleted = 0u32;
+    for id in &ids {
+        let n = conn.execute(
+            "UPDATE documents SET deleted_at = ?1, updated_at = ?1 WHERE id = ?2 AND deleted_at IS NULL",
+            rusqlite::params![now, id],
+        ).unwrap_or(0);
+        if n > 0 { deleted += 1; }
+    }
+    Ok(deleted)
+}
+
 // ── File system watcher ───────────────────────────────────────────────────────
 
 /// Long-running function (call from a dedicated thread).
-/// Watches the storage path for new files and emits `storage-changed` to the
-/// main window after a 5-second debounce.
+/// Watches the storage path for file-system changes and emits `storage-changed`
+/// to the main window after a 5-second debounce.
 pub fn run_storage_watcher(app: tauri::AppHandle) {
     loop {
         let storage_path = resolve_storage_path(&app);
@@ -243,13 +372,11 @@ fn watch_path(app: &tauri::AppHandle, storage_path: &str) {
         });
     }
 
-    // Watcher
     let watcher_last = last_event.clone();
     let Ok(mut watcher) = recommended_watcher(move |res: notify::Result<notify::Event>| {
         if let Ok(event) = res {
-            if matches!(event.kind, EventKind::Create(_) | EventKind::Modify(..)) {
+            if matches!(event.kind, EventKind::Create(_) | EventKind::Modify(..) | EventKind::Remove(_)) {
                 let relevant = event.paths.iter().any(|p| {
-                    // Ignore hidden files
                     !p.file_name()
                         .and_then(|n| n.to_str())
                         .map(|n| n.starts_with('.'))
@@ -266,7 +393,6 @@ fn watch_path(app: &tauri::AppHandle, storage_path: &str) {
         return;
     }
 
-    // Keep watcher alive; restart if storage path changes
     let initial = storage_path.to_string();
     loop {
         std::thread::sleep(Duration::from_secs(60));
@@ -275,5 +401,4 @@ fn watch_path(app: &tauri::AppHandle, storage_path: &str) {
             break;
         }
     }
-    // `watcher` is dropped here, stopping the watch
 }

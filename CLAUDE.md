@@ -61,7 +61,6 @@ project-docvault/
 │       │   ├── categories.rs   ← Category + preset field management
 │       │   ├── tags.rs         ← Tag CRUD
 │       │   ├── files.rs        ← reveal_in_file_manager, open_with_system, read bytes/text
-│       │   ├── ocr.rs          ← Tesseract CLI subprocess wrapper
 │       │   ├── export.rs       ← CSV export
 │       │   ├── backup.rs       ← ZIP backup / restore
 │       │   └── license.rs      ← License key verify + status (HMAC-SHA256, offline)
@@ -98,10 +97,9 @@ project-docvault/
 
 ### Backend
 - **Single SQLite connection** shared via `Mutex<Connection>` in `AppState`. No connection pool needed.
-- **Migrations** run on every startup from `migrations/001_initial.sql`, `002_add_ocr_text.sql`, etc. Add new migrations as `00N_description.sql`.
-- **File storage**: documents are copied into the user-chosen `storage_path` folder under `.docvault/files/`. Original files are never moved or deleted.
+- **Migrations** run on every startup from `migrations/001_initial.sql`, `002_add_ocr_text.sql`, etc. (migration files stay even if features are removed — the column remains in DB for existing users). Add new migrations as `00N_description.sql`.
+- **File storage**: documents are copied into the user-chosen `storage_path` folder. Original files are never moved or deleted.
 - **Duplicate detection**: SHA-256 hash of the file content. On hash collision `create_document` returns `DUPLICATE:<title>` — the frontend retries with a numbered suffix.
-- **OCR** calls `tesseract` CLI as a subprocess (no Leptess linking). Optional; gracefully absent if not installed.
 
 ### License
 - Keys are validated **offline** via HMAC-SHA256 with the secret `docvault-license-secret-v1` (in `license.rs`).
@@ -122,7 +120,6 @@ project-docvault/
 
 ### Native Menu Bar
 - File: Add Document (Ctrl+N), Settings (Ctrl+,), Hide, Quit
-- Edit: Undo, Redo, Cut, Copy, Paste, Select All (predefined)
 - View: Home, Categories, Backup, Cloud Sync, Notifications
 - Help: About DocVault (emits `show-about` event → navigates to `#/about`)
 - Menu events emit Tauri events (`navigate`, `show-about`) consumed by `app.js`.

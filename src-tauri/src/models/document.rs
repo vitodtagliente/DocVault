@@ -16,7 +16,6 @@ pub struct Document {
     pub document_date: String,
     pub expiry_date: Option<String>,
     pub notes: String,
-    pub ocr_text: Option<String>,
     pub is_favorite: bool,
     pub created_at: String,
     pub updated_at: String,
@@ -33,7 +32,6 @@ pub struct CreateDocumentPayload {
     pub notes: String,
     pub tags: Vec<String>,
     pub custom_fields: Vec<CustomFieldValue>,
-    pub run_ocr: bool,
     /// When true, bypasses duplicate-hash check so the same file can be added
     /// multiple times (caller is responsible for giving a distinct title).
     pub force: Option<bool>,

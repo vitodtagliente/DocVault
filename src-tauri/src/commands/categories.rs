@@ -32,9 +32,9 @@ pub async fn create_category(
         .unwrap_or(0);
 
     conn.execute(
-        "INSERT INTO categories (id, name, slug, icon, color, is_system, sort_order, created_at, updated_at)
-         VALUES (?1,?2,?3,?4,?5,0,?6,?7,?7)",
-        rusqlite::params![id, payload.name, slug, icon, color, max_order + 1, now],
+        "INSERT INTO categories (id, name, slug, icon, color, is_system, sort_order, parent_id, created_at, updated_at)
+         VALUES (?1,?2,?3,?4,?5,0,?6,?7,?8,?8)",
+        rusqlite::params![id, payload.name, slug, icon, color, max_order + 1, payload.parent_id, now],
     ).map_err(|e| e.to_string())?;
 
     // Create preset fields
@@ -51,9 +51,18 @@ pub async fn create_category(
         ).map_err(|e| e.to_string())?;
     }
 
-    // Create storage directory
+    // Create storage directory (nested under parent if this is a subcategory)
     if let Ok(Some(storage_path)) = queries::get_setting(&conn, "storage_path") {
-        crate::utils::file_ops::ensure_directory(&std::path::Path::new(&storage_path).join(&slug)).ok();
+        let dir = if let Some(ref pid) = payload.parent_id {
+            if let Ok(Some(parent)) = queries::get_category_by_id(&conn, pid) {
+                std::path::Path::new(&storage_path).join(&parent.slug).join(&slug)
+            } else {
+                std::path::Path::new(&storage_path).join(&slug)
+            }
+        } else {
+            std::path::Path::new(&storage_path).join(&slug)
+        };
+        crate::utils::file_ops::ensure_directory(&dir).ok();
     }
 
     queries::write_event(&conn, &device_id, "category.created", "category", &id,
@@ -81,10 +90,12 @@ pub async fn update_category(
             icon = COALESCE(?3, icon),
             color = COALESCE(?4, color),
             sort_order = COALESCE(?5, sort_order),
+            parent_id = ?6,
             updated_at = datetime('now')
          WHERE id = ?1",
         rusqlite::params![
-            payload.id, payload.name, payload.icon, payload.color, payload.sort_order
+            payload.id, payload.name, payload.icon, payload.color, payload.sort_order,
+            payload.parent_id
         ],
     ).map_err(|e| e.to_string())?;
 
@@ -104,7 +115,16 @@ pub async fn delete_category(id: String, state: State<'_, AppState>) -> Result<(
         .map_err(|e| e.to_string())?
         .unwrap_or_default();
 
-    // Check for associated documents
+    // Check for subcategories
+    let child_count: i64 = conn
+        .query_row("SELECT COUNT(*) FROM categories WHERE parent_id = ?1 AND deleted_at IS NULL",
+            rusqlite::params![id], |r| r.get(0))
+        .unwrap_or(0);
+    if child_count > 0 {
+        return Err(format!("Cannot delete category: {} subcategory/ies exist", child_count));
+    }
+
+    // Check for associated documents (including documents in subcategories)
     let doc_count: i64 = conn
         .query_row("SELECT COUNT(*) FROM documents WHERE category_id = ?1 AND deleted_at IS NULL",
             rusqlite::params![id], |r| r.get(0))
@@ -130,7 +150,7 @@ pub async fn get_preset_fields(
     state: State<'_, AppState>,
 ) -> Result<Vec<PresetField>, String> {
     let conn = state.db.lock().map_err(|e| e.to_string())?;
-    queries::get_preset_fields_for_category(&conn, &category_id).map_err(|e| e.to_string())
+    queries::get_preset_fields_with_inheritance(&conn, &category_id).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
