@@ -8,7 +8,7 @@ use crate::AppState;
 use crate::db::queries;
 use crate::utils::file_ops::mime_from_extension;
 use crate::utils::hash::sha256_file;
-use crate::commands::import::{SUPPORTED_EXT, ImportResult};
+use crate::commands::import::ImportResult;
 
 #[derive(Debug, Serialize, Clone)]
 pub struct UntrackedFile {
@@ -83,7 +83,6 @@ fn scan_untracked(
             scan_untracked(base, &path, db_paths, categories, out);
         } else if path.is_file() {
             let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
-            if !SUPPORTED_EXT.contains(&ext.as_str()) { continue; }
 
             let rel = match path.strip_prefix(base) {
                 Ok(r) => r.to_string_lossy().replace('\\', "/"),
@@ -250,16 +249,11 @@ fn watch_path(app: &tauri::AppHandle, storage_path: &str) {
         if let Ok(event) = res {
             if matches!(event.kind, EventKind::Create(_) | EventKind::Modify(..)) {
                 let relevant = event.paths.iter().any(|p| {
-                    // Ignore hidden files and non-document files
-                    let hidden = p.file_name()
+                    // Ignore hidden files
+                    !p.file_name()
                         .and_then(|n| n.to_str())
                         .map(|n| n.starts_with('.'))
-                        .unwrap_or(false);
-                    if hidden { return false; }
-                    p.extension()
-                        .and_then(|e| e.to_str())
-                        .map(|e| SUPPORTED_EXT.contains(&e.to_lowercase().as_str()))
-                        .unwrap_or(false)
+                        .unwrap_or(true)
                 });
                 if relevant {
                     *watcher_last.lock().unwrap() = Some(Instant::now());

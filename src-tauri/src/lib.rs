@@ -81,9 +81,10 @@ pub fn run() {
                 let cats  = MenuItem::with_id(app, "nav_categories", "&Categories", true, None::<&str>)?;
                 let backup= MenuItem::with_id(app, "nav_backup", "&Backup", true, None::<&str>)?;
                 let sync  = MenuItem::with_id(app, "nav_sync", "Cloud &Sync", true, None::<&str>)?;
+                let ocr   = MenuItem::with_id(app, "nav_ocr_setup", "OCR Setup", true, None::<&str>)?;
                 let sep   = PredefinedMenuItem::separator(app)?;
                 let notif = MenuItem::with_id(app, "nav_notifications", "&Notifications", true, None::<&str>)?;
-                Submenu::with_items(app, "&View", true, &[&home, &cats, &backup, &sync, &sep, &notif])?
+                Submenu::with_items(app, "&View", true, &[&home, &cats, &backup, &sync, &ocr, &sep, &notif])?
             };
 
             let help_menu = {
@@ -109,6 +110,7 @@ pub fn run() {
                     "nav_categories"    => emit_navigate("#/categories"),
                     "nav_backup"        => emit_navigate("#/backup"),
                     "nav_sync"          => emit_navigate("#/sync"),
+                    "nav_ocr_setup"     => emit_navigate("#/ocr-setup"),
                     "nav_notifications" => emit_navigate("#/notifications"),
                     "hide" => {
                         if let Some(w) = app.get_webview_window("main") {

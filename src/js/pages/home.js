@@ -83,10 +83,10 @@ export async function render(container) {
           </div>
         </div>
 
-        <!-- Pagination -->
+        <!-- Pagination (hidden until multiple pages exist) -->
         <div id="pagination-container"
              style="padding:.5rem 1rem;border-top:1px solid var(--color-border);
-                    flex-shrink:0;min-height:2.5rem;display:flex;align-items:center">
+                    flex-shrink:0;min-height:2.5rem;display:none;align-items:center">
         </div>
       </div>
 
@@ -253,12 +253,18 @@ export async function render(container) {
         ${result.total_count > 0 ? `<span>· ${t('home.page')} ${currentPage + 1} ${t('home.of')} ${result.total_pages}</span>` : ''}
       `;
 
-      paginationContainer.innerHTML = paginationHtml({ page: currentPage, totalPages: result.total_pages });
-      mountPagination(paginationContainer, (p) => {
-        currentPage = p;
-        doSearch();
-        resultsContainer.scrollTop = 0;
-      });
+      if (result.total_pages > 1) {
+        paginationContainer.style.display = 'flex';
+        paginationContainer.innerHTML = paginationHtml({ page: currentPage, totalPages: result.total_pages });
+        mountPagination(paginationContainer, (p) => {
+          currentPage = p;
+          doSearch();
+          resultsContainer.scrollTop = 0;
+        });
+      } else {
+        paginationContainer.style.display = 'none';
+        paginationContainer.innerHTML = '';
+      }
     } catch (err) {
       resultsContainer.innerHTML = `
         <div style="text-align:center;padding:3rem 1rem;color:#ef4444;font-size:.875rem">

@@ -7,12 +7,6 @@ use crate::db::queries;
 use crate::utils::{hash::sha256_file, file_ops::*};
 use crate::utils::date::now_iso;
 
-pub const SUPPORTED_EXT: &[&str] = &[
-    "pdf",
-    "jpg", "jpeg", "png", "gif", "webp", "heic", "tiff", "bmp",
-    "doc", "docx", "xls", "xlsx", "ppt", "pptx", "odt", "ods", "odp",
-    "txt", "md", "csv", "rtf",
-];
 
 #[derive(Debug, Serialize)]
 pub struct ImportCandidate {
@@ -77,7 +71,6 @@ fn scan_recursive(base: &Path, current: &Path, out: &mut Vec<ImportCandidate>) {
             scan_recursive(base, &path, out);
         } else if path.is_file() {
             let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
-            if !SUPPORTED_EXT.contains(&ext.as_str()) { continue; }
 
             // Folder components between root and this file (no filename)
             let folder_components: Vec<String> = path

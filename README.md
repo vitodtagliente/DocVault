@@ -7,13 +7,14 @@ Offline-first personal document vault built with **Tauri 2**, **Vanilla JS**, **
 
 ## Features
 
-- 📂 Offline-first document catalog (PDF, images, Word, Excel, Markdown, …)
+- 📂 Offline-first document catalog (any file type)
 - 🏷️ Custom categories with per-category preset fields
 - 🔍 Full-text search with FTS5 + optional OCR via Tesseract
 - 📅 Expiry date tracking with notifications
 - 👁️ Integrated viewer (PDF, images, Markdown)
 - 📤 CSV export & ZIP backup/restore
-- ☁️ Google Drive sync *(in development)*
+- ☁️ Cloud sync guide (Google Drive, Dropbox, OneDrive)
+- 📁 Bulk import from folder with auto-category detection
 - 🌙 Dark mode · 🌐 English / Italian
 
 ---
@@ -107,39 +108,6 @@ Output installers are written to `src-tauri/target/release/bundle/`:
 npm run android   # Android APK via cargo tauri android build
 npm run ios       # iOS IPA via cargo tauri ios build
 ```
-
----
-
-## Google Drive Sync Setup
-
-Drive sync requires a Google OAuth 2.0 **Client ID**. The client ID is **not a secret** in a PKCE desktop flow — it is safe to commit to the repo.
-
-### 1. Create a Google Cloud project
-
-1. Go to [https://console.cloud.google.com/](https://console.cloud.google.com/) and create a new project (e.g. *DocVault*).
-2. Go to **APIs & Services → Library**, search for **Google Drive API** and click **Enable**.
-
-### 2. Create OAuth credentials
-
-1. Go to **APIs & Services → Credentials → Create Credentials → OAuth client ID**.
-2. If prompted, configure the **OAuth consent screen** first:
-   - User type: **External**
-   - App name: `DocVault` · Scopes: `https://www.googleapis.com/auth/drive.file`
-   - Add your Google account as a test user
-3. Application type: **Desktop app** → click **Create**.
-4. Copy the **Client ID** (e.g. `123456789-xxxx.apps.googleusercontent.com`).
-
-### 3. Set the Client ID
-
-Open `src-tauri/src/commands/sync.rs` and replace the placeholder on this one line:
-
-```rust
-const GOOGLE_CLIENT_ID_VALUE: &str = "YOUR_CLIENT_ID.apps.googleusercontent.com";
-```
-
-Then rebuild (`npm run build` or `npm run dev`). That's it — no environment variables needed.
-
-> Contributors who don't set a client ID can still build and run the app; the Sync page will show a configuration notice instead of the login button.
 
 ---
 

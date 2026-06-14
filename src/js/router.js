@@ -32,6 +32,7 @@ const routes = [
   { pattern: /^#\/notifications$/, page: 'notifications' },
   { pattern: /^#\/about$/, page: 'about' },
   { pattern: /^#\/import$/, page: 'import' },
+  { pattern: /^#\/ocr-setup$/, page: 'ocr-setup' },
 ];
 
 let currentCleanup = null;
@@ -100,13 +101,15 @@ const router = {
     store.setState({ currentPage: matched.page });
 
     // Show/hide shell elements — setup page gets a blank canvas
-    const isSetup = matched.page === 'setup';
-    const sidebar   = document.getElementById('sidebar');
-    const header    = document.getElementById('header');
-    const bottomNav = document.getElementById('bottom-nav');
-    if (sidebar)   sidebar.style.display   = isSetup ? 'none' : '';
-    if (header)    header.style.display    = isSetup ? 'none' : '';
-    if (bottomNav) bottomNav.style.display = isSetup ? 'none' : '';
+    const isSetup   = matched.page === 'setup';
+    const sidebar    = document.getElementById('sidebar');
+    const header     = document.getElementById('header');
+    const bottomNav  = document.getElementById('bottom-nav');
+    const versionBar = document.getElementById('version-bar');
+    if (sidebar)    sidebar.style.display    = isSetup ? 'none' : '';
+    if (header)     header.style.display     = isSetup ? 'none' : '';
+    if (bottomNav)  bottomNav.style.display  = isSetup ? 'none' : '';
+    if (versionBar) versionBar.style.display = isSetup ? 'none' : '';
 
     // Cleanup previous page
     if (currentCleanup) {

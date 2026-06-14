@@ -19,10 +19,6 @@ async function init() {
   const versionText = document.getElementById('version-text');
   if (versionText) versionText.textContent = `v${appConfig.version}`;
 
-  // Hide version footer on setup page; show everywhere else
-  updateFooterVisibility();
-  window.addEventListener('hashchange', updateFooterVisibility);
-
   try {
     // Load settings
     const settings = await api.getSettings();
@@ -163,13 +159,6 @@ function wireGlobalEvents() {
 }
 
 // ── Footer helpers ─────────────────────────────────────────────────────────────
-
-function updateFooterVisibility() {
-  const bar = document.getElementById('version-bar');
-  if (!bar) return;
-  const onSetup = window.location.hash === '#/setup' || window.location.hash === '';
-  bar.style.display = onSetup ? 'none' : '';
-}
 
 function setFooterScanning(active) {
   const text = document.getElementById('version-text');

@@ -24,30 +24,30 @@ function openUrl(url) {
 
 export async function render(container) {
   container.innerHTML = `
-    <div class="max-w-sm mx-auto flex flex-col items-center gap-8 pt-12 pb-16">
+    <div class="max-w-sm mx-auto flex flex-col items-center pt-12 pb-16">
 
       <!-- Logo + name -->
       <div class="flex flex-col items-center gap-4">
         <div style="width:4.5rem;height:4.5rem;color:var(--color-primary)">${LOGO_SVG}</div>
         <div class="text-center">
           <h1 class="text-2xl font-bold text-[var(--color-text)]">${appConfig.name}</h1>
-          <p class="text-sm text-[var(--color-text-muted)] mt-1">${appConfig.tagline ?? ''}</p>
+          <p class="text-sm mt-1" style="color:var(--color-text-muted)">${appConfig.tagline ?? ''}</p>
         </div>
       </div>
 
-      <!-- Info card — full-bleed dividers -->
+      <!-- Info card — full-bleed dividers, explicit margin top/bottom -->
       <div class="w-full overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-border)]"
-           style="background:var(--color-surface)">
-        <div class="flex items-center justify-between px-5 py-4">
-          <span class="text-sm text-[var(--color-text-muted)]">${t('about.version')}</span>
-          <span class="text-sm font-semibold text-[var(--color-text)]">${appConfig.version}</span>
+           style="background:var(--color-surface);margin-top:2.5rem;margin-bottom:2rem">
+        <div class="flex items-center justify-between px-5 py-5">
+          <span class="text-sm" style="color:var(--color-text-muted)">${t('about.version')}</span>
+          <span class="text-sm font-semibold" style="color:var(--color-text)">${appConfig.version}</span>
         </div>
-        <div class="flex items-center justify-between px-5 py-4 border-t border-[var(--color-border)]">
-          <span class="text-sm text-[var(--color-text-muted)]">${t('about.platform')}</span>
-          <span class="text-sm text-[var(--color-text)]">Windows · macOS · Linux</span>
+        <div class="flex items-center justify-between px-5 py-5 border-t border-[var(--color-border)]">
+          <span class="text-sm" style="color:var(--color-text-muted)">${t('about.platform')}</span>
+          <span class="text-sm" style="color:var(--color-text)">Windows · macOS · Linux</span>
         </div>
-        <div class="flex items-center justify-between px-5 py-4 border-t border-[var(--color-border)]">
-          <span class="text-sm text-[var(--color-text-muted)]">GitHub</span>
+        <div class="flex items-center justify-between px-5 py-5 border-t border-[var(--color-border)]">
+          <span class="text-sm" style="color:var(--color-text-muted)">GitHub</span>
           <button id="github-link"
                   class="text-sm font-medium flex items-center gap-1.5"
                   style="color:var(--color-primary)">

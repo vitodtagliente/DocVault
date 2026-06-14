@@ -126,10 +126,7 @@ export async function render(container) {
 
   dropArea.addEventListener('click', async () => {
     try {
-      const path = await api.openFileDialog([
-        { name: 'Documents', extensions: ['pdf','jpg','jpeg','png','gif','webp','bmp','tiff','doc','docx','xls','xlsx','txt','csv','md','zip'] },
-        { name: 'All files', extensions: ['*'] },
-      ]);
+      const path = await api.openFileDialog([]);
       if (!path) return;
       setFile(path);
     } catch (err) {
